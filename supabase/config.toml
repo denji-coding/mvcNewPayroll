@@ -1,1 +1,7 @@
 project_id = "nqzzjpbotaawiatwyedb"
+
+[functions.rfid-attendance]
+verify_jwt = false
+
+[functions.compute-payroll]
+verify_jwt = true
