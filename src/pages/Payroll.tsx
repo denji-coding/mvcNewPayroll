@@ -7,15 +7,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calculator, Plus, Eye, CheckCircle } from 'lucide-react';
-import { usePayrollPeriods, usePayrollRecords, useCreatePayrollPeriod, useRunPayroll, useApprovePayroll, useSalaryComponents } from '@/hooks/usePayroll';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Calculator, Plus, Eye, CheckCircle, Edit, Trash2, Banknote } from 'lucide-react';
+import { usePayrollPeriods, usePayrollRecords, useCreatePayrollPeriod, useRunPayroll, useApprovePayroll } from '@/hooks/usePayroll';
+import { useSalaryComponents, useCreateSalaryComponent, useUpdateSalaryComponent, useDeleteSalaryComponent } from '@/hooks/useSalaryComponents';
+import { useLoans, useCreateLoan, useUpdateLoan, useDeleteLoan } from '@/hooks/useLoans';
+import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 
 export default function Payroll() {
   const { role } = useAuth();
+  const isHR = role === 'hr_admin';
   const { data: periods, isLoading: periodsLoading } = usePayrollPeriods();
-  const { data: components } = useSalaryComponents();
+  const { data: components, isLoading: componentsLoading } = useSalaryComponents();
+  const { data: loans, isLoading: loansLoading } = useLoans();
+  const { data: employees } = useEmployees();
   const createPeriod = useCreatePayrollPeriod();
   const runPayroll = useRunPayroll();
   const approvePayroll = useApprovePayroll();
@@ -29,52 +38,26 @@ export default function Payroll() {
 
   const handleCreatePeriod = (e: React.FormEvent) => {
     e.preventDefault();
-    createPeriod.mutate({
-      period_start: periodForm.period_start,
-      period_end: periodForm.period_end,
-      pay_date: periodForm.pay_date
-    }, {
-      onSuccess: () => {
-        setPeriodForm({ period_start: '', period_end: '', pay_date: '' });
-        setCreateOpen(false);
-      }
-    });
+    createPeriod.mutate(periodForm, { onSuccess: () => { setPeriodForm({ period_start: '', period_end: '', pay_date: '' }); setCreateOpen(false); } });
   };
 
-  const handleRunPayroll = (periodId: string) => {
-    runPayroll.mutate({ periodId });
-  };
-
-  const handleApprovePayroll = (periodId: string) => {
-    approvePayroll.mutate(periodId);
-  };
+  const formatCurrency = (amount: number | null) => `₱${(amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
 
   const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      draft: 'bg-muted text-muted-foreground',
-      processing: 'bg-info/20 text-info',
-      approved: 'bg-success/20 text-success',
-      paid: 'bg-primary/20 text-primary'
-    };
-    return <span className={`px-2 py-1 rounded text-xs font-medium ${styles[status] || styles.draft}`}>{status}</span>;
+    const variants: Record<string, 'default' | 'secondary' | 'outline'> = { draft: 'outline', processing: 'secondary', approved: 'default', paid: 'default' };
+    return <Badge variant={variants[status] || 'outline'}>{status}</Badge>;
   };
 
-  const formatCurrency = (amount: number | null) => {
-    return `₱${(amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
-  };
-
-  const earnings = components?.filter((c: any) => c.type === 'earning') || [];
-  const deductions = components?.filter((c: any) => c.type === 'deduction') || [];
+  const earnings = components?.filter(c => c.type === 'earning') || [];
+  const deductions = components?.filter(c => c.type === 'deduction') || [];
 
   return (
     <div className="page-container">
       <div className="page-header">
         <h1 className="page-title">Payroll Management</h1>
-        {role === 'hr_admin' && (
+        {isHR && (
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" /> New Payroll Period</Button>
-            </DialogTrigger>
+            <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> New Payroll Period</Button></DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Create Payroll Period</DialogTitle></DialogHeader>
               <form onSubmit={handleCreatePeriod} className="space-y-4">
@@ -83,9 +66,7 @@ export default function Payroll() {
                   <div><Label>Period End</Label><Input type="date" value={periodForm.period_end} onChange={(e) => setPeriodForm({ ...periodForm, period_end: e.target.value })} required /></div>
                 </div>
                 <div><Label>Pay Date</Label><Input type="date" value={periodForm.pay_date} onChange={(e) => setPeriodForm({ ...periodForm, pay_date: e.target.value })} required /></div>
-                <Button type="submit" className="w-full" disabled={createPeriod.isPending}>
-                  {createPeriod.isPending ? 'Creating...' : 'Create Period'}
-                </Button>
+                <Button type="submit" className="w-full" disabled={createPeriod.isPending}>{createPeriod.isPending ? 'Creating...' : 'Create Period'}</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -97,66 +78,31 @@ export default function Payroll() {
           <TabsTrigger value="periods">Payroll Periods</TabsTrigger>
           <TabsTrigger value="records">Payroll Records</TabsTrigger>
           <TabsTrigger value="components">Salary Components</TabsTrigger>
+          <TabsTrigger value="loans">Loans</TabsTrigger>
         </TabsList>
 
         <TabsContent value="periods" className="mt-4">
           <Card>
-            <CardHeader><CardTitle>Payroll Periods</CardTitle><CardDescription>Manage payroll cycles and processing</CardDescription></CardHeader>
+            <CardHeader><CardTitle>Payroll Periods</CardTitle></CardHeader>
             <CardContent>
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Pay Date</TableHead>
-                    <TableHead>Employees</TableHead>
-                    <TableHead>Total Gross</TableHead>
-                    <TableHead>Total Net</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+                <TableHeader><TableRow><TableHead>Period</TableHead><TableHead>Pay Date</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {periodsLoading ? (
-                    [1, 2, 3].map(i => (
-                      <TableRow key={i}>
-                        {[1, 2, 3, 4, 5, 6, 7].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
-                      </TableRow>
-                    ))
-                  ) : periods && periods.length > 0 ? (
-                    periods.map((p: any) => (
-                      <TableRow key={p.id}>
-                        <TableCell>{format(new Date(p.period_start), 'MMM d')} - {format(new Date(p.period_end), 'MMM d, yyyy')}</TableCell>
-                        <TableCell>{format(new Date(p.pay_date), 'MMM d, yyyy')}</TableCell>
-                        <TableCell>-</TableCell>
-                        <TableCell>-</TableCell>
-                        <TableCell>-</TableCell>
-                        <TableCell>{getStatusBadge(p.status)}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline" onClick={() => setSelectedPeriod(p.id)}>
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            {role === 'hr_admin' && p.status === 'draft' && (
-                              <Button size="sm" onClick={() => handleRunPayroll(p.id)} disabled={runPayroll.isPending}>
-                                <Calculator className="mr-1 h-4 w-4" /> Run
-                              </Button>
-                            )}
-                            {role === 'hr_admin' && p.status === 'processing' && (
-                              <Button size="sm" variant="outline" onClick={() => handleApprovePayroll(p.id)} disabled={approvePayroll.isPending}>
-                                <CheckCircle className="mr-1 h-4 w-4" /> Approve
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        No payroll periods. Click "New Payroll Period" to create one.
+                  {periodsLoading ? [1,2,3].map(i => <TableRow key={i}>{[1,2,3,4].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>) :
+                   periods?.length ? periods.map((p: any) => (
+                    <TableRow key={p.id}>
+                      <TableCell>{format(new Date(p.period_start), 'MMM d')} - {format(new Date(p.period_end), 'MMM d, yyyy')}</TableCell>
+                      <TableCell>{format(new Date(p.pay_date), 'MMM d, yyyy')}</TableCell>
+                      <TableCell>{getStatusBadge(p.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setSelectedPeriod(p.id)}><Eye className="h-4 w-4" /></Button>
+                          {isHR && p.status === 'draft' && <Button size="sm" onClick={() => runPayroll.mutate({ periodId: p.id })}><Calculator className="mr-1 h-4 w-4" />Run</Button>}
+                          {isHR && p.status === 'processing' && <Button size="sm" variant="outline" onClick={() => approvePayroll.mutate(p.id)}><CheckCircle className="mr-1 h-4 w-4" />Approve</Button>}
+                        </div>
                       </TableCell>
                     </TableRow>
-                  )}
+                  )) : <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">No payroll periods</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </CardContent>
@@ -165,158 +111,165 @@ export default function Payroll() {
 
         <TabsContent value="records" className="mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Payroll Records</CardTitle>
-              <CardDescription>
-                {selectedPeriod ? 'Individual employee payslips' : 'Select a payroll period from the Periods tab to view records'}
-              </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Payroll Records</CardTitle><CardDescription>{selectedPeriod ? 'Employee payslips' : 'Select a period first'}</CardDescription></CardHeader>
             <CardContent>
               {selectedPeriod ? (
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Employee</TableHead>
-                      <TableHead>Basic Pay</TableHead>
-                      <TableHead>Gross Pay</TableHead>
-                      <TableHead>Deductions</TableHead>
-                      <TableHead>Net Pay</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                  <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Basic</TableHead><TableHead>Gross</TableHead><TableHead>Deductions</TableHead><TableHead>Net Pay</TableHead><TableHead>View</TableHead></TableRow></TableHeader>
                   <TableBody>
-                    {recordsLoading ? (
-                      [1, 2, 3].map(i => (
-                        <TableRow key={i}>
-                          {[1, 2, 3, 4, 5, 6].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
-                        </TableRow>
-                      ))
-                    ) : records && records.length > 0 ? (
-                      records.map((r: any) => (
-                        <TableRow key={r.id}>
-                          <TableCell>{r.employees?.first_name} {r.employees?.last_name}</TableCell>
-                          <TableCell>{formatCurrency(r.basic_pay)}</TableCell>
-                          <TableCell>{formatCurrency(r.gross_pay)}</TableCell>
-                          <TableCell>{formatCurrency(r.total_deductions)}</TableCell>
-                          <TableCell className="font-bold">{formatCurrency(r.net_pay)}</TableCell>
-                          <TableCell>
-                            <Dialog open={viewPayslip?.id === r.id} onOpenChange={(open) => !open && setViewPayslip(null)}>
-                              <DialogTrigger asChild>
-                                <Button size="sm" variant="outline" onClick={() => setViewPayslip(r)}>
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-lg">
-                                <DialogHeader><DialogTitle>Payslip</DialogTitle></DialogHeader>
-                                <div className="space-y-4">
-                                  <div className="text-center border-b pb-4">
-                                    <h3 className="font-bold">{r.employees?.first_name} {r.employees?.last_name}</h3>
-                                    <p className="text-sm text-muted-foreground">{r.employees?.position}</p>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <h4 className="font-semibold text-success mb-2">Earnings</h4>
-                                      <div className="space-y-1 text-sm">
-                                        <div className="flex justify-between"><span>Basic Pay</span><span>{formatCurrency(r.basic_pay)}</span></div>
-                                        <div className="flex justify-between"><span>Overtime</span><span>{formatCurrency(r.overtime_pay)}</span></div>
-                                        <div className="flex justify-between"><span>Holiday Pay</span><span>{formatCurrency(r.holiday_pay)}</span></div>
-                                        <div className="flex justify-between"><span>Allowances</span><span>{formatCurrency(r.total_allowances)}</span></div>
-                                        <div className="flex justify-between font-bold border-t pt-1"><span>Gross Pay</span><span>{formatCurrency(r.gross_pay)}</span></div>
-                                      </div>
-                                    </div>
-                                    <div>
-                                      <h4 className="font-semibold text-destructive mb-2">Deductions</h4>
-                                      <div className="space-y-1 text-sm">
-                                        <div className="flex justify-between"><span>SSS</span><span>{formatCurrency(r.sss_contribution)}</span></div>
-                                        <div className="flex justify-between"><span>PhilHealth</span><span>{formatCurrency(r.philhealth_contribution)}</span></div>
-                                        <div className="flex justify-between"><span>Pag-IBIG</span><span>{formatCurrency(r.pagibig_contribution)}</span></div>
-                                        <div className="flex justify-between"><span>Withholding Tax</span><span>{formatCurrency(r.withholding_tax)}</span></div>
-                                        <div className="flex justify-between"><span>Other</span><span>{formatCurrency(r.other_deductions)}</span></div>
-                                        <div className="flex justify-between font-bold border-t pt-1"><span>Total</span><span>{formatCurrency(r.total_deductions)}</span></div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="bg-primary/10 p-4 rounded-lg text-center">
-                                    <p className="text-sm text-muted-foreground">Net Pay</p>
-                                    <p className="text-2xl font-bold text-primary">{formatCurrency(r.net_pay)}</p>
-                                  </div>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          No payroll records for this period. Run payroll to generate records.
-                        </TableCell>
+                    {recordsLoading ? [1,2,3].map(i => <TableRow key={i}>{[1,2,3,4,5,6].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>) :
+                     records?.length ? records.map((r: any) => (
+                      <TableRow key={r.id}>
+                        <TableCell>{r.employees?.first_name} {r.employees?.last_name}</TableCell>
+                        <TableCell>{formatCurrency(r.basic_pay)}</TableCell>
+                        <TableCell>{formatCurrency(r.gross_pay)}</TableCell>
+                        <TableCell>{formatCurrency(r.total_deductions)}</TableCell>
+                        <TableCell className="font-bold">{formatCurrency(r.net_pay)}</TableCell>
+                        <TableCell><Button size="sm" variant="outline" onClick={() => setViewPayslip(r)}><Eye className="h-4 w-4" /></Button></TableCell>
                       </TableRow>
-                    )}
+                    )) : <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No records</TableCell></TableRow>}
                   </TableBody>
                 </Table>
-              ) : (
-                <p className="text-muted-foreground text-center py-8">Select a payroll period to view records</p>
-              )}
+              ) : <p className="text-muted-foreground text-center py-8">Select a payroll period</p>}
             </CardContent>
           </Card>
+          {viewPayslip && <PayslipDialog record={viewPayslip} onClose={() => setViewPayslip(null)} formatCurrency={formatCurrency} />}
         </TabsContent>
 
         <TabsContent value="components" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Salary Components</CardTitle><CardDescription>Configure earnings and deductions</CardDescription></CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="border rounded-lg p-4">
-                  <h3 className="font-semibold text-success mb-3">Earnings</h3>
-                  {earnings.length > 0 ? (
-                    <ul className="space-y-2 text-sm">
-                      {earnings.map((c: any) => (
-                        <li key={c.id} className="flex justify-between">
-                          <span>• {c.name}</span>
-                          {c.is_taxable && <span className="text-xs text-muted-foreground">Taxable</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <ul className="space-y-2 text-sm">
-                      <li>• Transportation Allowance</li>
-                      <li>• Rice Allowance</li>
-                      <li>• Meal Allowance</li>
-                      <li>• Overtime Pay</li>
-                      <li>• Night Differential</li>
-                      <li>• Holiday Pay</li>
-                    </ul>
-                  )}
-                </div>
-                <div className="border rounded-lg p-4">
-                  <h3 className="font-semibold text-destructive mb-3">Deductions</h3>
-                  {deductions.length > 0 ? (
-                    <ul className="space-y-2 text-sm">
-                      {deductions.map((c: any) => (
-                        <li key={c.id} className="flex justify-between">
-                          <span>• {c.name}</span>
-                          {c.is_mandatory && <span className="text-xs text-muted-foreground">Mandatory</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <ul className="space-y-2 text-sm">
-                      <li>• SSS Contribution</li>
-                      <li>• PhilHealth Contribution</li>
-                      <li>• Pag-IBIG Contribution</li>
-                      <li>• Withholding Tax</li>
-                      <li>• SSS Loan</li>
-                      <li>• Pag-IBIG Loan</li>
-                      <li>• Company Loan</li>
-                    </ul>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <SalaryComponentsTab earnings={earnings} deductions={deductions} isLoading={componentsLoading} isHR={isHR} />
+        </TabsContent>
+
+        <TabsContent value="loans" className="mt-4">
+          <LoansTab loans={loans} employees={employees} isLoading={loansLoading} isHR={isHR} formatCurrency={formatCurrency} />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function PayslipDialog({ record: r, onClose, formatCurrency }: { record: any; onClose: () => void; formatCurrency: (n: number | null) => string }) {
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Payslip - {r.employees?.first_name} {r.employees?.last_name}</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-4">
+          <div><h4 className="font-semibold text-success mb-2">Earnings</h4><div className="space-y-1 text-sm"><div className="flex justify-between"><span>Basic Pay</span><span>{formatCurrency(r.basic_pay)}</span></div><div className="flex justify-between"><span>Overtime</span><span>{formatCurrency(r.overtime_pay)}</span></div><div className="flex justify-between"><span>Holiday</span><span>{formatCurrency(r.holiday_pay)}</span></div><div className="flex justify-between"><span>Allowances</span><span>{formatCurrency(r.total_allowances)}</span></div><div className="flex justify-between font-bold border-t pt-1"><span>Gross</span><span>{formatCurrency(r.gross_pay)}</span></div></div></div>
+          <div><h4 className="font-semibold text-destructive mb-2">Deductions</h4><div className="space-y-1 text-sm"><div className="flex justify-between"><span>SSS</span><span>{formatCurrency(r.sss_contribution)}</span></div><div className="flex justify-between"><span>PhilHealth</span><span>{formatCurrency(r.philhealth_contribution)}</span></div><div className="flex justify-between"><span>Pag-IBIG</span><span>{formatCurrency(r.pagibig_contribution)}</span></div><div className="flex justify-between"><span>Tax</span><span>{formatCurrency(r.withholding_tax)}</span></div><div className="flex justify-between font-bold border-t pt-1"><span>Total</span><span>{formatCurrency(r.total_deductions)}</span></div></div></div>
+        </div>
+        <div className="bg-primary/10 p-4 rounded-lg text-center"><p className="text-sm text-muted-foreground">Net Pay</p><p className="text-2xl font-bold text-primary">{formatCurrency(r.net_pay)}</p></div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SalaryComponentsTab({ earnings, deductions, isLoading, isHR }: { earnings: any[]; deductions: any[]; isLoading: boolean; isHR: boolean }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ name: '', type: 'earning', description: '', is_taxable: true, is_mandatory: false });
+  const createComponent = useCreateSalaryComponent();
+  const deleteComponent = useDeleteSalaryComponent();
+
+  const handleSubmit = async () => {
+    await createComponent.mutateAsync(form);
+    setDialogOpen(false);
+    setForm({ name: '', type: 'earning', description: '', is_taxable: true, is_mandatory: false });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div><CardTitle>Salary Components</CardTitle><CardDescription>Configure earnings and deductions</CardDescription></div>
+          {isHR && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add Component</Button></DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Add Salary Component</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+                  <div><Label>Type</Label><Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="earning">Earning</SelectItem><SelectItem value="deduction">Deduction</SelectItem></SelectContent></Select></div>
+                  <div className="flex items-center justify-between"><Label>Taxable</Label><Switch checked={form.is_taxable} onCheckedChange={(v) => setForm({ ...form, is_taxable: v })} /></div>
+                  <div className="flex items-center justify-between"><Label>Mandatory</Label><Switch checked={form.is_mandatory} onCheckedChange={(v) => setForm({ ...form, is_mandatory: v })} /></div>
+                </div>
+                <DialogFooter><Button onClick={handleSubmit} disabled={!form.name}>Create</Button></DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <Skeleton className="h-40 w-full" /> : (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="border rounded-lg p-4"><h3 className="font-semibold text-success mb-3">Earnings</h3>
+              {earnings.length ? <ul className="space-y-2 text-sm">{earnings.map(c => <li key={c.id} className="flex justify-between items-center"><span>• {c.name}</span>{isHR && <Button variant="ghost" size="icon" onClick={() => deleteComponent.mutate(c.id)}><Trash2 className="h-4 w-4" /></Button>}</li>)}</ul> : <p className="text-muted-foreground text-sm">No earnings configured</p>}
+            </div>
+            <div className="border rounded-lg p-4"><h3 className="font-semibold text-destructive mb-3">Deductions</h3>
+              {deductions.length ? <ul className="space-y-2 text-sm">{deductions.map(c => <li key={c.id} className="flex justify-between items-center"><span>• {c.name}</span>{isHR && <Button variant="ghost" size="icon" onClick={() => deleteComponent.mutate(c.id)}><Trash2 className="h-4 w-4" /></Button>}</li>)}</ul> : <p className="text-muted-foreground text-sm">No deductions configured</p>}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function LoansTab({ loans, employees, isLoading, isHR, formatCurrency }: { loans: any; employees: any; isLoading: boolean; isHR: boolean; formatCurrency: (n: number | null) => string }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState({ employee_id: '', loan_type: 'SSS', principal_amount: '', monthly_amortization: '', start_date: '' });
+  const createLoan = useCreateLoan();
+  const deleteLoan = useDeleteLoan();
+
+  const handleSubmit = async () => {
+    await createLoan.mutateAsync({ ...form, principal_amount: parseFloat(form.principal_amount), monthly_amortization: parseFloat(form.monthly_amortization) });
+    setDialogOpen(false);
+    setForm({ employee_id: '', loan_type: 'SSS', principal_amount: '', monthly_amortization: '', start_date: '' });
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div><CardTitle className="flex items-center gap-2"><Banknote className="h-5 w-5" />Loan Management</CardTitle><CardDescription>Manage employee loans</CardDescription></div>
+          {isHR && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add Loan</Button></DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Add Employee Loan</DialogTitle></DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div><Label>Employee</Label><Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}><SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger><SelectContent>{employees?.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.first_name} {e.last_name}</SelectItem>)}</SelectContent></Select></div>
+                  <div><Label>Loan Type</Label><Select value={form.loan_type} onValueChange={(v) => setForm({ ...form, loan_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="SSS">SSS Loan</SelectItem><SelectItem value="Pag-IBIG">Pag-IBIG Loan</SelectItem><SelectItem value="Company">Company Loan</SelectItem></SelectContent></Select></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><Label>Principal Amount</Label><Input type="number" value={form.principal_amount} onChange={(e) => setForm({ ...form, principal_amount: e.target.value })} /></div>
+                    <div><Label>Monthly Amortization</Label><Input type="number" value={form.monthly_amortization} onChange={(e) => setForm({ ...form, monthly_amortization: e.target.value })} /></div>
+                  </div>
+                  <div><Label>Start Date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
+                </div>
+                <DialogFooter><Button onClick={handleSubmit} disabled={!form.employee_id || !form.principal_amount}>Create</Button></DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <Skeleton className="h-40 w-full" /> : !loans?.length ? <p className="text-muted-foreground text-center py-8">No loans</p> : (
+          <Table>
+            <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Type</TableHead><TableHead>Principal</TableHead><TableHead>Monthly</TableHead><TableHead>Balance</TableHead><TableHead>Status</TableHead>{isHR && <TableHead>Actions</TableHead>}</TableRow></TableHeader>
+            <TableBody>
+              {loans.map((l: any) => (
+                <TableRow key={l.id}>
+                  <TableCell>{l.employee?.first_name} {l.employee?.last_name}</TableCell>
+                  <TableCell>{l.loan_type}</TableCell>
+                  <TableCell>{formatCurrency(l.principal_amount)}</TableCell>
+                  <TableCell>{formatCurrency(l.monthly_amortization)}</TableCell>
+                  <TableCell>{formatCurrency(l.remaining_balance)}</TableCell>
+                  <TableCell><Badge variant={l.status === 'active' ? 'default' : 'secondary'}>{l.status}</Badge></TableCell>
+                  {isHR && <TableCell><Button variant="ghost" size="icon" onClick={() => deleteLoan.mutate(l.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
