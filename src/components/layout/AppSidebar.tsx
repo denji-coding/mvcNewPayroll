@@ -9,6 +9,7 @@ import {
   FileText,
   Settings,
   ChevronDown,
+  Fingerprint,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,7 +39,8 @@ const navigationItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['hr_admin', 'branch_manager', 'employee'] },
   { title: 'Employees', url: '/employees', icon: Users, roles: ['hr_admin', 'branch_manager'] },
   { title: 'Branches', url: '/branches', icon: Building2, roles: ['hr_admin'] },
-  { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager', 'employee'] },
+  { title: 'Clock In/Out', url: '/clock-in-out', icon: Fingerprint, roles: ['employee'] },
+  { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager'] },
   { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'] },
   { title: 'Payroll', url: '/payroll', icon: DollarSign, roles: ['hr_admin', 'branch_manager', 'employee'] },
   { title: 'Reports', url: '/reports', icon: FileText, roles: ['hr_admin', 'branch_manager'] },
