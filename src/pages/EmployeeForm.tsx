@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save } from 'lucide-react';
+import { SalaryAdjustmentsCard } from '@/components/employees/SalaryAdjustmentsCard';
 
 export default function EmployeeForm() {
   const { id } = useParams();
@@ -106,6 +107,12 @@ export default function EmployeeForm() {
           <Button type="submit" disabled={loading}><Save className="mr-2 h-4 w-4" />{loading ? 'Saving...' : 'Save Employee'}</Button>
         </div>
       </form>
+
+      {id && (
+        <div className="mt-6">
+          <SalaryAdjustmentsCard employeeId={id} />
+        </div>
+      )}
     </div>
   );
 }
