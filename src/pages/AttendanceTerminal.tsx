@@ -1,0 +1,303 @@
+import { useState, useRef, useEffect } from 'react';
+import { format } from 'date-fns';
+import { CreditCard, User, CheckCircle2, XCircle, Clock, Building2, ArrowLeft, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { useAttendanceTerminal } from '@/hooks/useAttendanceTerminal';
+import { cn } from '@/lib/utils';
+
+export default function AttendanceTerminal() {
+  const [mode, setMode] = useState<'rfid' | 'manual'>('rfid');
+  const [rfidInput, setRfidInput] = useState('');
+  const [employeeIdInput, setEmployeeIdInput] = useState('');
+  const rfidInputRef = useRef<HTMLInputElement>(null);
+  const manualInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    currentTime,
+    isLoading,
+    result,
+    submitRfidAttendance,
+    submitManualAttendance,
+    clearResult,
+  } = useAttendanceTerminal();
+
+  // Auto-focus RFID input
+  useEffect(() => {
+    if (mode === 'rfid' && !result) {
+      rfidInputRef.current?.focus();
+    } else if (mode === 'manual' && !result) {
+      manualInputRef.current?.focus();
+    }
+  }, [mode, result]);
+
+  // Clear input when result clears
+  useEffect(() => {
+    if (!result) {
+      setRfidInput('');
+      setEmployeeIdInput('');
+      if (mode === 'rfid') {
+        rfidInputRef.current?.focus();
+      }
+    }
+  }, [result, mode]);
+
+  const handleRfidSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rfidInput.trim()) {
+      submitRfidAttendance(rfidInput);
+    }
+  };
+
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (employeeIdInput.trim()) {
+      submitManualAttendance(employeeIdInput);
+    }
+  };
+
+  const handleModeSwitch = () => {
+    clearResult();
+    setMode(mode === 'rfid' ? 'manual' : 'rfid');
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary via-primary/95 to-primary/80 flex flex-col">
+      {/* Header */}
+      <header className="bg-background/10 backdrop-blur-sm border-b border-background/20 py-4 px-6">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-background rounded-xl flex items-center justify-center">
+              <Building2 className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-primary-foreground">MVC Corporation</h1>
+              <p className="text-sm text-primary-foreground/70">Attendance System</p>
+            </div>
+          </div>
+          <a
+            href="/"
+            className="flex items-center gap-2 text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back to Portal</span>
+          </a>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-lg">
+          {/* Digital Clock */}
+          <div className="text-center mb-8">
+            <div className="text-6xl md:text-7xl font-bold text-primary-foreground tracking-tight mb-2">
+              {format(currentTime, 'hh:mm:ss')}
+              <span className="text-3xl md:text-4xl ml-2">{format(currentTime, 'a')}</span>
+            </div>
+            <p className="text-xl text-primary-foreground/80">
+              {format(currentTime, 'EEEE, MMMM d, yyyy')}
+            </p>
+          </div>
+
+          {/* Attendance Card */}
+          <Card className="bg-background shadow-2xl border-0">
+            <CardContent className="p-8">
+              {/* Result Display */}
+              {result ? (
+                <div className="text-center py-8">
+                  <div
+                    className={cn(
+                      'w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center',
+                      result.success ? 'bg-success/10' : 'bg-destructive/10'
+                    )}
+                  >
+                    {result.success ? (
+                      <CheckCircle2 className="w-12 h-12 text-success" />
+                    ) : (
+                      <XCircle className="w-12 h-12 text-destructive" />
+                    )}
+                  </div>
+
+                  {result.success ? (
+                    <>
+                      <h2 className="text-2xl font-bold text-foreground mb-2">
+                        {result.action === 'time_in' ? 'TIME IN' : 'TIME OUT'} RECORDED
+                      </h2>
+                      <p className="text-xl text-muted-foreground mb-4">{result.employee_name}</p>
+                      <p className="text-lg text-muted-foreground">{result.employee_id}</p>
+                      {result.timestamp && (
+                        <p className="text-muted-foreground mt-2">
+                          {format(new Date(result.timestamp), 'hh:mm a')}
+                        </p>
+                      )}
+                      {result.late_minutes && result.late_minutes > 0 && (
+                        <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-warning/10 text-warning rounded-full text-sm">
+                          <Clock className="w-4 h-4" />
+                          Late by {result.late_minutes} minutes
+                        </div>
+                      )}
+                      {result.status === 'present' && result.action === 'time_in' && (
+                        <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-success/10 text-success rounded-full text-sm">
+                          <CheckCircle2 className="w-4 h-4" />
+                          On Time
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="text-xl font-bold text-destructive mb-2">
+                        {result.error || 'Attendance Failed'}
+                      </h2>
+                      {result.employee_name && (
+                        <p className="text-muted-foreground">{result.employee_name}</p>
+                      )}
+                      <p className="text-muted-foreground mt-4">Please try again or contact HR</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Mode Toggle */}
+                  <div className="flex justify-center mb-6">
+                    <div className="inline-flex rounded-lg bg-muted p-1">
+                      <button
+                        onClick={() => setMode('rfid')}
+                        className={cn(
+                          'px-4 py-2 rounded-md text-sm font-medium transition-colors',
+                          mode === 'rfid'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        <CreditCard className="w-4 h-4 inline-block mr-2" />
+                        RFID Card
+                      </button>
+                      <button
+                        onClick={() => setMode('manual')}
+                        className={cn(
+                          'px-4 py-2 rounded-md text-sm font-medium transition-colors',
+                          mode === 'manual'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        <User className="w-4 h-4 inline-block mr-2" />
+                        Employee ID
+                      </button>
+                    </div>
+                  </div>
+
+                  {mode === 'rfid' ? (
+                    <form onSubmit={handleRfidSubmit} className="space-y-6">
+                      <div className="text-center">
+                        <div className="w-24 h-24 bg-primary/10 rounded-full mx-auto mb-4 flex items-center justify-center">
+                          <CreditCard className="w-12 h-12 text-primary" />
+                        </div>
+                        <h2 className="text-xl font-semibold text-foreground mb-2">
+                          Scan Your ID Card
+                        </h2>
+                        <p className="text-muted-foreground">
+                          Place your RFID card near the scanner
+                        </p>
+                      </div>
+                      
+                      <Input
+                        ref={rfidInputRef}
+                        type="text"
+                        value={rfidInput}
+                        onChange={(e) => setRfidInput(e.target.value)}
+                        placeholder="Waiting for card scan..."
+                        className="text-center text-lg h-14 bg-muted/50"
+                        autoComplete="off"
+                        disabled={isLoading}
+                      />
+
+                      <p className="text-center text-sm text-muted-foreground">
+                        Lost your ID?{' '}
+                        <button
+                          type="button"
+                          onClick={handleModeSwitch}
+                          className="text-primary hover:underline font-medium"
+                        >
+                          Enter Employee ID manually
+                        </button>
+                      </p>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleManualSubmit} className="space-y-6">
+                      <div className="text-center">
+                        <div className="w-24 h-24 bg-primary/10 rounded-full mx-auto mb-4 flex items-center justify-center">
+                          <User className="w-12 h-12 text-primary" />
+                        </div>
+                        <h2 className="text-xl font-semibold text-foreground mb-2">
+                          Enter Employee ID
+                        </h2>
+                        <p className="text-muted-foreground">
+                          Type your employee ID below
+                        </p>
+                      </div>
+
+                      <Input
+                        ref={manualInputRef}
+                        type="text"
+                        value={employeeIdInput}
+                        onChange={(e) => setEmployeeIdInput(e.target.value.toUpperCase())}
+                        placeholder="e.g., EMP-001"
+                        className="text-center text-lg h-14 uppercase"
+                        autoComplete="off"
+                        disabled={isLoading}
+                      />
+
+                      <Button 
+                        type="submit" 
+                        className="w-full h-12 text-lg"
+                        disabled={!employeeIdInput.trim() || isLoading}
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          'Submit Attendance'
+                        )}
+                      </Button>
+
+                      <p className="text-center text-sm text-muted-foreground">
+                        <button
+                          type="button"
+                          onClick={handleModeSwitch}
+                          className="text-primary hover:underline font-medium"
+                        >
+                          ← Back to RFID mode
+                        </button>
+                      </p>
+                    </form>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Loading Overlay */}
+          {isLoading && !result && (
+            <div className="fixed inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-background p-8 rounded-xl shadow-2xl text-center">
+                <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
+                <p className="text-lg font-medium">Processing attendance...</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-background/10 backdrop-blur-sm border-t border-background/20 py-3 px-6">
+        <p className="text-center text-sm text-primary-foreground/60">
+          © {new Date().getFullYear()} MVC Corporation. All rights reserved.
+        </p>
+      </footer>
+    </div>
+  );
+}

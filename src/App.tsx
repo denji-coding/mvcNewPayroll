@@ -14,6 +14,7 @@ import EmployeeForm from "./pages/EmployeeForm";
 import Branches from "./pages/Branches";
 import Attendance from "./pages/Attendance";
 import ClockInOut from "./pages/ClockInOut";
+import AttendanceTerminal from "./pages/AttendanceTerminal";
 import Leaves from "./pages/Leaves";
 import Payroll from "./pages/Payroll";
 import Reports from "./pages/Reports";
@@ -71,6 +72,8 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Public attendance terminal - no auth required */}
+      <Route path="/attendance-terminal" element={<AttendanceTerminal />} />
       <Route
         path="/auth"
         element={
