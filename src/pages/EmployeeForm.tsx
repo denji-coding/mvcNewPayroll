@@ -22,6 +22,8 @@ export default function EmployeeForm() {
     date_hired: '', basic_salary: '', branch_id: '', sss_number: '', philhealth_number: '',
     pagibig_number: '', tin_number: '', bank_name: '', bank_account_number: '',
     emergency_contact_name: '', emergency_contact_phone: '', rfid_card_number: '',
+    role: 'employee' as 'employee' | 'branch_manager' | 'hr_admin',
+    password: '',
   });
 
   useEffect(() => {
@@ -42,14 +44,40 @@ export default function EmployeeForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const payload = { ...form, basic_salary: parseFloat(form.basic_salary) || 0 };
-    const { error } = id
-      ? await supabase.from('employees').update(payload).eq('id', id)
-      : await supabase.from('employees').insert(payload);
-    setLoading(false);
-    if (error) { toast({ variant: 'destructive', title: 'Error', description: error.message }); return; }
-    toast({ title: id ? 'Employee Updated' : 'Employee Created' });
-    navigate('/employees');
+
+    if (id) {
+      // Update existing employee (no user/role changes)
+      const { password, role, ...payload } = form;
+      const { error } = await supabase.from('employees').update({ ...payload, basic_salary: parseFloat(form.basic_salary) || 0 }).eq('id', id);
+      setLoading(false);
+      if (error) { toast({ variant: 'destructive', title: 'Error', description: error.message }); return; }
+      toast({ title: 'Employee Updated' });
+      navigate('/employees');
+    } else {
+      // Create new employee with user account via edge function
+      if (!form.password || form.password.length < 6) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Password must be at least 6 characters' });
+        setLoading(false);
+        return;
+      }
+
+      const payload = {
+        ...form,
+        basic_salary: parseFloat(form.basic_salary) || 0,
+      };
+
+      const { data, error } = await supabase.functions.invoke('create-employee', {
+        body: payload,
+      });
+
+      setLoading(false);
+      if (error || data?.error) {
+        toast({ variant: 'destructive', title: 'Error', description: data?.error || error?.message });
+        return;
+      }
+      toast({ title: 'Employee Created', description: 'User account created and role assigned' });
+      navigate('/employees');
+    }
   };
 
   const updateField = (field: string, value: string) => setForm({ ...form, [field]: value });
@@ -89,6 +117,40 @@ export default function EmployeeForm() {
             <div><Label>RFID Card Number</Label><Input value={form.rfid_card_number} onChange={(e) => updateField('rfid_card_number', e.target.value)} /></div>
           </CardContent>
         </Card>
+
+        {!id && (
+          <Card>
+            <CardHeader><CardTitle>User Account & Role</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-3">
+              <div>
+                <Label>Role *</Label>
+                <Select value={form.role} onValueChange={(v) => updateField('role', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="branch_manager">Branch Manager</SelectItem>
+                    <SelectItem value="hr_admin">HR Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Password *</Label>
+                <Input 
+                  type="password" 
+                  value={form.password} 
+                  onChange={(e) => updateField('password', e.target.value)} 
+                  placeholder="Min 6 characters"
+                  required 
+                />
+              </div>
+              <div className="flex items-end">
+                <p className="text-sm text-muted-foreground">
+                  Employee will login using their email and this password
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader><CardTitle>Government IDs & Banking</CardTitle></CardHeader>
