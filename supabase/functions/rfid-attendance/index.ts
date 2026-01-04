@@ -7,7 +7,8 @@ const corsHeaders = {
 };
 
 interface AttendanceRequest {
-  rfid_card_number: string;
+  rfid_card_number?: string;
+  employee_id?: string;
   timestamp?: string;
 }
 
@@ -22,22 +23,28 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { rfid_card_number, timestamp }: AttendanceRequest = await req.json();
+    const { rfid_card_number, employee_id, timestamp }: AttendanceRequest = await req.json();
 
-    if (!rfid_card_number) {
+    if (!rfid_card_number && !employee_id) {
       return new Response(
-        JSON.stringify({ error: 'RFID card number is required' }),
+        JSON.stringify({ error: 'RFID card number or Employee ID is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Find employee by RFID
-    const { data: employee, error: empError } = await supabase
+    // Find employee by RFID or Employee ID
+    let employeeQuery = supabase
       .from('employees')
       .select('id, first_name, last_name, employee_id, branch_id')
-      .eq('rfid_card_number', rfid_card_number)
-      .eq('employment_status', 'active')
-      .single();
+      .eq('employment_status', 'active');
+
+    if (rfid_card_number) {
+      employeeQuery = employeeQuery.eq('rfid_card_number', rfid_card_number);
+    } else if (employee_id) {
+      employeeQuery = employeeQuery.eq('employee_id', employee_id);
+    }
+
+    const { data: employee, error: empError } = await employeeQuery.single();
 
     if (empError || !employee) {
       console.error('Employee lookup error:', empError);
