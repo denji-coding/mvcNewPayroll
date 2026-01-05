@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.compute-payroll]
 verify_jwt = true
+
+[functions.create-employee]
+verify_jwt = true

@@ -48,7 +48,20 @@ export default function EmployeeForm() {
     if (id) {
       // Update existing employee (no user/role changes)
       const { password, role, ...payload } = form;
-      const { error } = await supabase.from('employees').update({ ...payload, basic_salary: parseFloat(form.basic_salary) || 0 }).eq('id', id);
+      
+      // Clean empty strings to undefined for optional fields
+      const cleanPayload: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(payload)) {
+        if (value === '') {
+          cleanPayload[key] = null;
+        } else if (key === 'basic_salary') {
+          cleanPayload[key] = parseFloat(value as string) || 0;
+        } else {
+          cleanPayload[key] = value;
+        }
+      }
+      
+      const { error } = await supabase.from('employees').update(cleanPayload).eq('id', id);
       setLoading(false);
       if (error) { toast({ variant: 'destructive', title: 'Error', description: error.message }); return; }
       toast({ title: 'Employee Updated' });
