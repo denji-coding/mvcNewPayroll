@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Calculator, Plus, Eye, CheckCircle, Edit, Trash2, Banknote } from 'lucide-react';
-import { usePayrollPeriods, usePayrollRecords, useCreatePayrollPeriod, useRunPayroll, useApprovePayroll } from '@/hooks/usePayroll';
+import { usePayrollPeriods, usePayrollRecords, useCreatePayrollPeriod, useRunPayroll, useApprovePayroll, useDeletePayrollPeriod, useDeletePayrollRecord } from '@/hooks/usePayroll';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useSalaryComponents, useCreateSalaryComponent, useUpdateSalaryComponent, useDeleteSalaryComponent } from '@/hooks/useSalaryComponents';
 import { useLoans, useCreateLoan, useUpdateLoan, useDeleteLoan } from '@/hooks/useLoans';
 import { useEmployees } from '@/hooks/useEmployees';
@@ -28,6 +29,8 @@ export default function Payroll() {
   const createPeriod = useCreatePayrollPeriod();
   const runPayroll = useRunPayroll();
   const approvePayroll = useApprovePayroll();
+  const deletePayrollPeriod = useDeletePayrollPeriod();
+  const deletePayrollRecord = useDeletePayrollRecord();
 
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const { data: records, isLoading: recordsLoading } = usePayrollRecords(selectedPeriod || undefined);
@@ -99,6 +102,23 @@ export default function Payroll() {
                           <Button size="sm" variant="outline" onClick={() => setSelectedPeriod(p.id)}><Eye className="h-4 w-4" /></Button>
                           {isHR && p.status === 'draft' && <Button size="sm" onClick={() => runPayroll.mutate({ periodId: p.id })}><Calculator className="mr-1 h-4 w-4" />Run</Button>}
                           {isHR && p.status === 'processing' && <Button size="sm" variant="outline" onClick={() => approvePayroll.mutate(p.id)}><CheckCircle className="mr-1 h-4 w-4" />Approve</Button>}
+                          {isHR && (p.status === 'draft' || p.status === 'processing') && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Payroll Period?</AlertDialogTitle>
+                                  <AlertDialogDescription>This will delete the payroll period and all associated records. This action cannot be undone.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deletePayrollPeriod.mutate(p.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -115,7 +135,7 @@ export default function Payroll() {
             <CardContent>
               {selectedPeriod ? (
                 <Table>
-                  <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Basic</TableHead><TableHead>Gross</TableHead><TableHead>Deductions</TableHead><TableHead>Net Pay</TableHead><TableHead>View</TableHead></TableRow></TableHeader>
+                  <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Basic</TableHead><TableHead>Gross</TableHead><TableHead>Deductions</TableHead><TableHead>Net Pay</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {recordsLoading ? [1,2,3].map(i => <TableRow key={i}>{[1,2,3,4,5,6].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>) :
                      records?.length ? records.map((r: any) => (
@@ -125,7 +145,28 @@ export default function Payroll() {
                         <TableCell>{formatCurrency(r.gross_pay)}</TableCell>
                         <TableCell>{formatCurrency(r.total_deductions)}</TableCell>
                         <TableCell className="font-bold">{formatCurrency(r.net_pay)}</TableCell>
-                        <TableCell><Button size="sm" variant="outline" onClick={() => setViewPayslip(r)}><Eye className="h-4 w-4" /></Button></TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => setViewPayslip(r)}><Eye className="h-4 w-4" /></Button>
+                            {isHR && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="outline" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Payroll Record?</AlertDialogTitle>
+                                    <AlertDialogDescription>This will delete the payroll record for {r.employees?.first_name} {r.employees?.last_name}. This action cannot be undone.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deletePayrollRecord.mutate(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
+                        </TableCell>
                       </TableRow>
                     )) : <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No records</TableCell></TableRow>}
                   </TableBody>
