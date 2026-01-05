@@ -148,3 +148,57 @@ export function useEmployeeLoans(employeeId?: string) {
     enabled: !!employeeId,
   });
 }
+
+export function useDeletePayrollPeriod() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (periodId: string) => {
+      // First delete related records
+      const { error: recordsError } = await supabase
+        .from('payroll_records')
+        .delete()
+        .eq('payroll_period_id', periodId);
+      
+      if (recordsError) throw recordsError;
+      
+      // Then delete the period
+      const { error } = await supabase
+        .from('payroll_periods')
+        .delete()
+        .eq('id', periodId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-records'] });
+      toast.success('Payroll period deleted');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete payroll period: ' + error.message);
+    },
+  });
+}
+
+export function useDeletePayrollRecord() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (recordId: string) => {
+      const { error } = await supabase
+        .from('payroll_records')
+        .delete()
+        .eq('id', recordId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-records'] });
+      toast.success('Payroll record deleted');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete payroll record: ' + error.message);
+    },
+  });
+}
