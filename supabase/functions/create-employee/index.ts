@@ -34,6 +34,19 @@ interface EmployeeData {
   password: string;
 }
 
+// Clean empty strings to null for optional fields
+function cleanData(data: Record<string, unknown>): Record<string, unknown> {
+  const cleaned: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value === '' || value === undefined) {
+      cleaned[key] = null;
+    } else {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -95,9 +108,20 @@ Deno.serve(async (req) => {
 
     // 4. Create employee record linked to the user
     const { password, role, ...employeeFields } = employeeData;
+    const cleanedFields = cleanData(employeeFields);
+    
+    // Remove any undefined/empty optional fields
+    const insertData: Record<string, unknown> = {
+      ...cleanedFields,
+      user_id: userId,
+      basic_salary: employeeData.basic_salary || 0,
+    };
+    
+    console.log("Inserting employee:", JSON.stringify(insertData));
+    
     const { data: employee, error: employeeError } = await supabaseAdmin
       .from('employees')
-      .insert({ ...employeeFields, user_id: userId })
+      .insert(insertData)
       .select()
       .single();
 
