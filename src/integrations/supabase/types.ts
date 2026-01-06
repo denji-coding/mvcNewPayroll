@@ -811,6 +811,7 @@ export type Database = {
         | "payroll_ready"
         | "announcement"
         | "system"
+        | "attendance"
       payroll_status: "draft" | "processing" | "approved" | "paid"
     }
     CompositeTypes: {
@@ -964,6 +965,7 @@ export const Constants = {
         "payroll_ready",
         "announcement",
         "system",
+        "attendance",
       ],
       payroll_status: ["draft", "processing", "approved", "paid"],
     },
