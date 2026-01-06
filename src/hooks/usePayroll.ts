@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import { getSafeErrorMessage } from '@/lib/errorHandler';
+import type { Tables, TablesInsert } from '@/integrations/supabase/types';
 
 export type PayrollPeriod = Tables<'payroll_periods'>;
 export type PayrollRecord = Tables<'payroll_records'>;
@@ -59,7 +60,7 @@ export function useCreatePayrollPeriod() {
       toast.success('Payroll period created');
     },
     onError: (error) => {
-      toast.error('Failed to create payroll period: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to create payroll period'));
     },
   });
 }
@@ -82,7 +83,7 @@ export function useRunPayroll() {
       toast.success('Payroll computed successfully');
     },
     onError: (error) => {
-      toast.error('Failed to compute payroll: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to compute payroll'));
     },
   });
 }
@@ -110,7 +111,7 @@ export function useApprovePayroll() {
       toast.success('Payroll approved');
     },
     onError: (error) => {
-      toast.error('Failed to approve payroll: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to approve payroll'));
     },
   });
 }
@@ -176,7 +177,7 @@ export function useDeletePayrollPeriod() {
       toast.success('Payroll period deleted');
     },
     onError: (error) => {
-      toast.error('Failed to delete payroll period: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to delete payroll period'));
     },
   });
 }
@@ -198,7 +199,7 @@ export function useDeletePayrollRecord() {
       toast.success('Payroll record deleted');
     },
     onError: (error) => {
-      toast.error('Failed to delete payroll record: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to delete payroll record'));
     },
   });
 }

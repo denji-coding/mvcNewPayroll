@@ -12,6 +12,9 @@ interface AttendanceResult {
   status?: string;
 }
 
+// Get the terminal secret from environment (set this in your deployment)
+const TERMINAL_SECRET = import.meta.env.VITE_RFID_TERMINAL_SECRET || '';
+
 export function useAttendanceTerminal() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
@@ -36,16 +39,24 @@ export function useAttendanceTerminal() {
   }, [result]);
 
   const submitRfidAttendance = useCallback(async (rfidCardNumber: string) => {
-    if (!rfidCardNumber.trim() || isLoading) return;
+    const trimmedInput = rfidCardNumber.trim();
+    if (!trimmedInput || isLoading) return;
+    
+    // Basic validation
+    if (trimmedInput.length > 50) {
+      setResult({ success: false, error: 'Invalid RFID card number' });
+      return;
+    }
     
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('rfid-attendance', {
-        body: { rfid_card_number: rfidCardNumber.trim() },
+        body: { rfid_card_number: trimmedInput },
+        headers: TERMINAL_SECRET ? { 'x-terminal-secret': TERMINAL_SECRET } : {},
       });
 
       if (error) {
-        setResult({ success: false, error: error.message || 'Failed to process attendance' });
+        setResult({ success: false, error: 'Failed to process attendance. Please try again.' });
         return;
       }
 
@@ -72,16 +83,24 @@ export function useAttendanceTerminal() {
   }, [isLoading]);
 
   const submitManualAttendance = useCallback(async (employeeId: string) => {
-    if (!employeeId.trim() || isLoading) return;
+    const trimmedInput = employeeId.trim();
+    if (!trimmedInput || isLoading) return;
+    
+    // Basic validation
+    if (trimmedInput.length > 50) {
+      setResult({ success: false, error: 'Invalid Employee ID' });
+      return;
+    }
     
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('rfid-attendance', {
-        body: { employee_id: employeeId.trim() },
+        body: { employee_id: trimmedInput },
+        headers: TERMINAL_SECRET ? { 'x-terminal-secret': TERMINAL_SECRET } : {},
       });
 
       if (error) {
-        setResult({ success: false, error: error.message || 'Failed to process attendance' });
+        setResult({ success: false, error: 'Failed to process attendance. Please try again.' });
         return;
       }
 

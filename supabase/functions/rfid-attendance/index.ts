@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-terminal-secret',
 };
 
 interface AttendanceRequest {
@@ -19,15 +19,43 @@ serve(async (req) => {
   }
 
   try {
+    // Verify terminal secret for security
+    const terminalSecret = Deno.env.get('RFID_TERMINAL_SECRET');
+    const providedSecret = req.headers.get('x-terminal-secret');
+    
+    if (terminalSecret && terminalSecret !== providedSecret) {
+      console.error('Invalid terminal secret provided');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized terminal' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { rfid_card_number, employee_id, timestamp }: AttendanceRequest = await req.json();
 
+    // Validate input
     if (!rfid_card_number && !employee_id) {
       return new Response(
         JSON.stringify({ error: 'RFID card number or Employee ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate input length to prevent abuse
+    if (rfid_card_number && rfid_card_number.length > 50) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid RFID card number' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (employee_id && employee_id.length > 50) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid Employee ID' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -49,7 +77,7 @@ serve(async (req) => {
     if (empError || !employee) {
       console.error('Employee lookup error:', empError);
       return new Response(
-        JSON.stringify({ error: 'Employee not found or inactive', rfid: rfid_card_number }),
+        JSON.stringify({ error: 'Employee not found or inactive' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -167,9 +195,9 @@ serve(async (req) => {
 
   } catch (error: unknown) {
     console.error('RFID Attendance Error:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
+    // Return generic error message to client, log details server-side
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: 'Failed to process attendance' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

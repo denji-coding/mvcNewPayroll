@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getSafeErrorMessage } from '@/lib/errorHandler';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 export type Branch = Tables<'branches'>;
@@ -59,7 +60,7 @@ export function useCreateBranch() {
       toast.success('Branch created successfully');
     },
     onError: (error) => {
-      toast.error('Failed to create branch: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to create branch'));
     },
   });
 }
@@ -84,7 +85,7 @@ export function useUpdateBranch() {
       toast.success('Branch updated successfully');
     },
     onError: (error) => {
-      toast.error('Failed to update branch: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to update branch'));
     },
   });
 }
@@ -106,7 +107,7 @@ export function useDeleteBranch() {
       toast.success('Branch deleted successfully');
     },
     onError: (error) => {
-      toast.error('Failed to delete branch: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to delete branch'));
     },
   });
 }

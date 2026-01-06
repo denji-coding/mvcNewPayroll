@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getSafeErrorMessage } from '@/lib/errorHandler';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 export type Employee = Tables<'employees'>;
@@ -59,7 +60,7 @@ export function useCreateEmployee() {
       toast.success('Employee created successfully');
     },
     onError: (error) => {
-      toast.error('Failed to create employee: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to create employee'));
     },
   });
 }
@@ -84,7 +85,7 @@ export function useUpdateEmployee() {
       toast.success('Employee updated successfully');
     },
     onError: (error) => {
-      toast.error('Failed to update employee: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to update employee'));
     },
   });
 }
@@ -106,7 +107,7 @@ export function useDeleteEmployee() {
       toast.success('Employee deleted successfully');
     },
     onError: (error) => {
-      toast.error('Failed to delete employee: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to delete employee'));
     },
   });
 }

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
+import { getSafeErrorMessage } from '@/lib/errorHandler';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 export type LeaveRequest = Tables<'leave_requests'>;
@@ -122,7 +123,7 @@ export function useCreateLeaveRequest() {
       toast.success('Leave request submitted successfully');
     },
     onError: (error) => {
-      toast.error('Failed to submit leave request: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to submit leave request'));
     },
   });
 }
@@ -162,7 +163,7 @@ export function useApproveLeaveRequest() {
       toast.success(`Leave request ${variables.action === 'approve' ? 'approved' : 'rejected'}`);
     },
     onError: (error) => {
-      toast.error('Failed to process leave request: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to process leave request'));
     },
   });
 }

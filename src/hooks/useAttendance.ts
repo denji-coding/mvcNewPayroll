@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getSafeErrorMessage } from '@/lib/errorHandler';
 import type { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 export type Attendance = Tables<'attendance'>;
@@ -66,12 +67,12 @@ export function useUpdateAttendance() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
       toast.success('Attendance updated');
     },
     onError: (error) => {
-      toast.error('Failed to update attendance: ' + error.message);
+      toast.error(getSafeErrorMessage(error, 'Failed to update attendance'));
     },
   });
 }
