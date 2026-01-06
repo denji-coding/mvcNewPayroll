@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getSafeErrorMessage } from '@/lib/errorHandler';
 
 export interface Announcement {
   id: string;
@@ -70,7 +71,11 @@ export function useCreateAnnouncement() {
       toast({ title: 'Announcement created successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error creating announcement', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error creating announcement', 
+        description: getSafeErrorMessage(error, 'Failed to create announcement'), 
+        variant: 'destructive' 
+      });
     },
   });
 }
@@ -96,7 +101,11 @@ export function useUpdateAnnouncement() {
       toast({ title: 'Announcement updated successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error updating announcement', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error updating announcement', 
+        description: getSafeErrorMessage(error, 'Failed to update announcement'), 
+        variant: 'destructive' 
+      });
     },
   });
 }
@@ -125,7 +134,11 @@ export function useToggleAnnouncementPublish() {
       toast({ title: variables.is_published ? 'Announcement published' : 'Announcement unpublished' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error updating announcement', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error updating announcement', 
+        description: getSafeErrorMessage(error, 'Failed to update announcement'), 
+        variant: 'destructive' 
+      });
     },
   });
 }
@@ -148,7 +161,11 @@ export function useDeleteAnnouncement() {
       toast({ title: 'Announcement deleted successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error deleting announcement', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error deleting announcement', 
+        description: getSafeErrorMessage(error, 'Failed to delete announcement'), 
+        variant: 'destructive' 
+      });
     },
   });
 }

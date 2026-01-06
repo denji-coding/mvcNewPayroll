@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getSafeErrorMessage } from '@/lib/errorHandler';
 
 export interface Holiday {
   id: string;
@@ -49,7 +50,11 @@ export function useCreateHoliday() {
       toast({ title: 'Holiday created successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error creating holiday', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error creating holiday', 
+        description: getSafeErrorMessage(error, 'Failed to create holiday'), 
+        variant: 'destructive' 
+      });
     },
   });
 }
@@ -75,7 +80,11 @@ export function useUpdateHoliday() {
       toast({ title: 'Holiday updated successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error updating holiday', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error updating holiday', 
+        description: getSafeErrorMessage(error, 'Failed to update holiday'), 
+        variant: 'destructive' 
+      });
     },
   });
 }
@@ -98,7 +107,11 @@ export function useDeleteHoliday() {
       toast({ title: 'Holiday deleted successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error deleting holiday', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error deleting holiday', 
+        description: getSafeErrorMessage(error, 'Failed to delete holiday'), 
+        variant: 'destructive' 
+      });
     },
   });
 }

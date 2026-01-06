@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getSafeErrorMessage } from '@/lib/errorHandler';
 
 export interface Loan {
   id: string;
@@ -106,7 +107,11 @@ export function useCreateLoan() {
       toast({ title: 'Loan created successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error creating loan', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error creating loan', 
+        description: getSafeErrorMessage(error, 'Failed to create loan'), 
+        variant: 'destructive' 
+      });
     },
   });
 }
@@ -132,7 +137,11 @@ export function useUpdateLoan() {
       toast({ title: 'Loan updated successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error updating loan', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error updating loan', 
+        description: getSafeErrorMessage(error, 'Failed to update loan'), 
+        variant: 'destructive' 
+      });
     },
   });
 }
@@ -175,7 +184,11 @@ export function useRecordLoanPayment() {
       toast({ title: 'Payment recorded successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error recording payment', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error recording payment', 
+        description: getSafeErrorMessage(error, 'Failed to record payment'), 
+        variant: 'destructive' 
+      });
     },
   });
 }
@@ -198,7 +211,11 @@ export function useDeleteLoan() {
       toast({ title: 'Loan deleted successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error deleting loan', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error deleting loan', 
+        description: getSafeErrorMessage(error, 'Failed to delete loan'), 
+        variant: 'destructive' 
+      });
     },
   });
 }
