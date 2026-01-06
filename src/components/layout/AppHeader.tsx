@@ -44,7 +44,15 @@ export function AppHeader() {
             <DropdownMenuLabel className="flex items-center justify-between">
               Notifications
               {unreadCount > 0 && (
-                <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    markAllAsRead();
+                  }}
+                >
                   Mark all read
                 </Button>
               )}
