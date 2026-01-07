@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -11,13 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Edit, Trash2, Calendar, Megaphone, Users, Building } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, Megaphone, Users, Building, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { useBranches } from '@/hooks/useBranches';
 import { useHolidays, useCreateHoliday, useUpdateHoliday, useDeleteHoliday } from '@/hooks/useHolidays';
 import { useAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useToggleAnnouncementPublish, useDeleteAnnouncement } from '@/hooks/useAnnouncements';
 import { useUsersWithRoles, useBranchManagers, useUpdateUserRole, useAssignBranchManager, useRemoveBranchManager } from '@/hooks/useUserRoles';
+import { useTerminalSettings, useUpdateTerminalSettings, TerminalSettings } from '@/hooks/useSettings';
 import { Database } from '@/integrations/supabase/types';
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -33,13 +34,14 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="general">
-        <TabsList className="flex-wrap">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:flex lg:w-auto gap-1">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="payroll">Payroll</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          {isHR && <TabsTrigger value="terminal">Terminal</TabsTrigger>}
           {isHR && <TabsTrigger value="holidays">Holidays</TabsTrigger>}
           {isHR && <TabsTrigger value="announcements">Announcements</TabsTrigger>}
-          {isHR && <TabsTrigger value="users">User Management</TabsTrigger>}
+          {isHR && <TabsTrigger value="users">Users</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="general" className="mt-4 space-y-4">
@@ -53,6 +55,12 @@ export default function Settings() {
         <TabsContent value="notifications" className="mt-4 space-y-4">
           <NotificationSettings />
         </TabsContent>
+
+        {isHR && (
+          <TabsContent value="terminal" className="mt-4 space-y-4">
+            <TerminalSettingsTab />
+          </TabsContent>
+        )}
 
         {isHR && (
           <TabsContent value="holidays" className="mt-4 space-y-4">
@@ -163,6 +171,94 @@ function NotificationSettings() {
   );
 }
 
+function TerminalSettingsTab() {
+  const { data: settings, isLoading } = useTerminalSettings();
+  const updateSettings = useUpdateTerminalSettings();
+  
+  const [form, setForm] = useState<TerminalSettings>({
+    work_start_time: '08:00',
+    work_end_time: '17:00',
+    grace_period_minutes: 0,
+    allow_manual_entry: true,
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setForm(settings);
+    }
+  }, [settings]);
+
+  const handleSave = () => {
+    updateSettings.mutate(form);
+  };
+
+  if (isLoading) {
+    return <Skeleton className="h-64 w-full" />;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          Attendance Terminal Settings
+        </CardTitle>
+        <CardDescription>Configure work hours and attendance rules</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Work Start Time</Label>
+            <Input
+              type="time"
+              value={form.work_start_time}
+              onChange={(e) => setForm({ ...form, work_start_time: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">When the work day begins</p>
+          </div>
+          <div className="space-y-2">
+            <Label>Work End Time</Label>
+            <Input
+              type="time"
+              value={form.work_end_time}
+              onChange={(e) => setForm({ ...form, work_end_time: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">When the work day ends</p>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label>Grace Period (minutes)</Label>
+          <Input
+            type="number"
+            min="0"
+            max="60"
+            value={form.grace_period_minutes}
+            onChange={(e) => setForm({ ...form, grace_period_minutes: parseInt(e.target.value) || 0 })}
+            className="max-w-32"
+          />
+          <p className="text-xs text-muted-foreground">Minutes after start time before marking as late</p>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div>
+            <Label>Allow Manual Entry</Label>
+            <p className="text-sm text-muted-foreground">Allow employees to clock in using Employee ID</p>
+          </div>
+          <Switch
+            checked={form.allow_manual_entry}
+            onCheckedChange={(v) => setForm({ ...form, allow_manual_entry: v })}
+          />
+        </div>
+        
+        <Button onClick={handleSave} disabled={updateSettings.isPending}>
+          {updateSettings.isPending ? 'Saving...' : 'Save Settings'}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 function HolidayManagement() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -208,7 +304,7 @@ function HolidayManagement() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
@@ -216,9 +312,9 @@ function HolidayManagement() {
             </CardTitle>
             <CardDescription>Manage company holidays for payroll computation</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
-              <SelectTrigger className="w-24">
+              <SelectTrigger className="w-full sm:w-24">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -229,7 +325,7 @@ function HolidayManagement() {
             </Select>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button onClick={() => { setEditingHoliday(null); setForm({ name: '', date: '', type: 'regular' }); }}>
+                <Button className="w-full sm:w-auto" onClick={() => { setEditingHoliday(null); setForm({ name: '', date: '', type: 'regular' }); }}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Holiday
                 </Button>
@@ -268,9 +364,9 @@ function HolidayManagement() {
                     </Select>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={handleSubmit} disabled={!form.name || !form.date}>
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                  <Button variant="outline" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+                  <Button onClick={handleSubmit} disabled={!form.name || !form.date} className="w-full sm:w-auto">
                     {editingHoliday ? 'Update' : 'Create'}
                   </Button>
                 </DialogFooter>
@@ -287,37 +383,39 @@ function HolidayManagement() {
         ) : holidays?.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">No holidays configured for {year}</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Holiday Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {holidays?.map((holiday) => (
-                <TableRow key={holiday.id}>
-                  <TableCell>{format(new Date(holiday.date), 'MMM dd, yyyy')}</TableCell>
-                  <TableCell className="font-medium">{holiday.name}</TableCell>
-                  <TableCell>
-                    <Badge variant={holiday.type === 'regular' ? 'default' : 'secondary'}>
-                      {holiday.type === 'regular' ? 'Regular' : 'Special'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(holiday)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(holiday.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Holiday Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {holidays?.map((holiday) => (
+                  <TableRow key={holiday.id}>
+                    <TableCell>{format(new Date(holiday.date), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell className="font-medium">{holiday.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={holiday.type === 'regular' ? 'default' : 'secondary'}>
+                        {holiday.type === 'regular' ? 'Regular' : 'Special'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(holiday)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(holiday.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -377,7 +475,7 @@ function AnnouncementManagement() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Megaphone className="h-5 w-5" />
@@ -387,7 +485,7 @@ function AnnouncementManagement() {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => { setEditingAnnouncement(null); setForm({ title: '', content: '', branch_id: '' }); }}>
+              <Button className="w-full sm:w-auto" onClick={() => { setEditingAnnouncement(null); setForm({ title: '', content: '', branch_id: '' }); }}>
                 <Plus className="h-4 w-4 mr-2" />
                 New Announcement
               </Button>
@@ -431,9 +529,9 @@ function AnnouncementManagement() {
                   </Select>
                 </div>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleSubmit} disabled={!form.title || !form.content}>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+                <Button onClick={handleSubmit} disabled={!form.title || !form.content} className="w-full sm:w-auto">
                   {editingAnnouncement ? 'Update' : 'Create'}
                 </Button>
               </DialogFooter>
@@ -453,9 +551,9 @@ function AnnouncementManagement() {
             {announcements?.map((announcement) => (
               <Card key={announcement.id}>
                 <CardContent className="pt-4">
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
                         <h3 className="font-semibold">{announcement.title}</h3>
                         <Badge variant={announcement.is_published ? 'default' : 'secondary'}>
                           {announcement.is_published ? 'Published' : 'Draft'}
@@ -467,7 +565,7 @@ function AnnouncementManagement() {
                         {announcement.published_at && ` • Published: ${format(new Date(announcement.published_at), 'MMM dd, yyyy')}`}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -555,53 +653,55 @@ function UserRoleManagement() {
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Current Role</TableHead>
-                  <TableHead>Change Role</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users?.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">
-                      {user.first_name} {user.last_name}
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user.role)}>
-                        {user.role || 'No Role'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={user.role || ''}
-                        onValueChange={(v) => handleRoleChange(user, v as AppRole)}
-                      >
-                        <SelectTrigger className="w-40">
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="employee">Employee</SelectItem>
-                          <SelectItem value="branch_manager">Branch Manager</SelectItem>
-                          <SelectItem value="hr_admin">HR Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Current Role</TableHead>
+                    <TableHead>Change Role</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {users?.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
+                        {user.first_name} {user.last_name}
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={getRoleBadgeVariant(user.role)}>
+                          {user.role || 'No Role'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={user.role || ''}
+                          onValueChange={(v) => handleRoleChange(user, v as AppRole)}
+                        >
+                          <SelectTrigger className="w-32 sm:w-40">
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="employee">Employee</SelectItem>
+                            <SelectItem value="branch_manager">Branch Manager</SelectItem>
+                            <SelectItem value="hr_admin">HR Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Building className="h-5 w-5" />
@@ -611,7 +711,7 @@ function UserRoleManagement() {
             </div>
             <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full sm:w-auto">
                   <Plus className="h-4 w-4 mr-2" />
                   Assign Manager
                 </Button>
@@ -655,9 +755,9 @@ function UserRoleManagement() {
                     </Select>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={handleAssignBranch} disabled={!selectedUser || !selectedBranch}>
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                  <Button variant="outline" onClick={() => setAssignDialogOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+                  <Button onClick={handleAssignBranch} disabled={!selectedUser || !selectedBranch} className="w-full sm:w-auto">
                     Assign
                   </Button>
                 </DialogFooter>
@@ -673,39 +773,41 @@ function UserRoleManagement() {
           ) : branchManagers?.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No branch managers assigned yet</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Manager</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Assigned Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {branchManagers?.map((manager) => {
-                  const user = users?.find(u => u.id === manager.user_id);
-                  return (
-                    <TableRow key={manager.id}>
-                      <TableCell className="font-medium">
-                        {user ? `${user.first_name} ${user.last_name}` : 'Unknown'}
-                      </TableCell>
-                      <TableCell>
-                        {manager.branch?.name} ({manager.branch?.code})
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(manager.assigned_at), 'MMM dd, yyyy')}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleRemoveManager(manager.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Manager</TableHead>
+                    <TableHead>Branch</TableHead>
+                    <TableHead>Assigned Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {branchManagers?.map((manager) => {
+                    const user = users?.find(u => u.id === manager.user_id);
+                    return (
+                      <TableRow key={manager.id}>
+                        <TableCell className="font-medium">
+                          {user ? `${user.first_name} ${user.last_name}` : 'Unknown'}
+                        </TableCell>
+                        <TableCell>
+                          {manager.branch?.name} ({manager.branch?.code})
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(manager.assigned_at), 'MMM dd, yyyy')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => handleRemoveManager(manager.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

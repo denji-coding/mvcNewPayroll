@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLeaveRequests, useCreateLeaveRequest, useApproveLeaveRequest, useLeaveCredits, calculateWorkingDays } from '@/hooks/useLeaves';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,8 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, CheckCircle, XCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Plus, CheckCircle, XCircle, CalendarIcon, Upload } from 'lucide-react';
+import { format, startOfToday, isBefore, isAfter } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const LEAVE_TYPES = [
   { value: 'vacation', label: 'Vacation Leave' },
@@ -24,37 +29,111 @@ const LEAVE_TYPES = [
 ];
 
 export default function Leaves() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const { data: leaves, isLoading } = useLeaveRequests();
   const { data: credits } = useLeaveCredits();
   const createLeave = useCreateLeaveRequest();
   const approveLeave = useApproveLeaveRequest();
 
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ leave_type: '', start_date: '', end_date: '', reason: '' });
+  const [form, setForm] = useState({ leave_type: '', reason: '' });
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
   const [reviewLeave, setReviewLeave] = useState<any>(null);
   const [remarks, setRemarks] = useState('');
+  const [medicalFile, setMedicalFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const calculatedDays = form.start_date && form.end_date 
-    ? calculateWorkingDays(new Date(form.start_date), new Date(form.end_date))
+  const today = startOfToday();
+  const isSickLeave = form.leave_type === 'sick';
+  
+  const calculatedDays = startDate && endDate 
+    ? calculateWorkingDays(startDate, endDate)
     : 0;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.leave_type || !form.start_date || !form.end_date) return;
+  const requiresMedicalCert = isSickLeave && calculatedDays >= 3;
 
-    createLeave.mutate({
-      leave_type: form.leave_type as any,
-      start_date: form.start_date,
-      end_date: form.end_date,
-      total_days: calculatedDays,
-      reason: form.reason || null,
-    }, {
-      onSuccess: () => {
-        setForm({ leave_type: '', start_date: '', end_date: '', reason: '' });
-        setOpen(false);
+  // Reset dates when leave type changes
+  useEffect(() => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+  }, [form.leave_type]);
+
+  const getDateDisabledFn = () => {
+    if (isSickLeave) {
+      // Sick leave: disable future dates, allow past and today
+      return (date: Date) => isAfter(date, today);
+    }
+    // Other leaves: disable past dates, allow today and future
+    return (date: Date) => isBefore(date, today);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size must be less than 5MB');
+        return;
       }
-    });
+      setMedicalFile(file);
+    }
+  };
+
+  const uploadMedicalCert = async (): Promise<string | null> => {
+    if (!medicalFile || !user) return null;
+    
+    const fileExt = medicalFile.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    
+    const { error } = await supabase.storage
+      .from('medical-certificates')
+      .upload(fileName, medicalFile);
+    
+    if (error) {
+      console.error('Upload error:', error);
+      throw new Error('Failed to upload medical certificate');
+    }
+    
+    const { data: { publicUrl } } = supabase.storage
+      .from('medical-certificates')
+      .getPublicUrl(fileName);
+    
+    return publicUrl;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.leave_type || !startDate || !endDate) return;
+
+    try {
+      setUploading(true);
+      let medicalCertUrl: string | null = null;
+
+      if (requiresMedicalCert && medicalFile) {
+        medicalCertUrl = await uploadMedicalCert();
+      }
+
+      createLeave.mutate({
+        leave_type: form.leave_type as any,
+        start_date: format(startDate, 'yyyy-MM-dd'),
+        end_date: format(endDate, 'yyyy-MM-dd'),
+        total_days: calculatedDays,
+        reason: form.reason || null,
+        medical_certificate_url: medicalCertUrl,
+      }, {
+        onSuccess: () => {
+          setForm({ leave_type: '', reason: '' });
+          setStartDate(undefined);
+          setEndDate(undefined);
+          setMedicalFile(null);
+          setOpen(false);
+        }
+      });
+    } catch (error) {
+      toast.error('Failed to submit leave request');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleApprove = (action: 'approve' | 'reject') => {
@@ -94,7 +173,7 @@ export default function Leaves() {
         <h1 className="page-title">Leave Management</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Request Leave</Button></DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader><DialogTitle>New Leave Request</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -106,16 +185,109 @@ export default function Leaves() {
                   </SelectContent>
                 </Select>
               </div>
+              
               <div className="grid grid-cols-2 gap-4">
-                <div><Label>Start Date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} required /></div>
-                <div><Label>End Date</Label><Input type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} required /></div>
+                <div className="space-y-2">
+                  <Label>Start Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                        disabled={!form.leave_type}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "MMM d, yyyy") : "Pick date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        disabled={getDateDisabledFn()}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>End Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                        disabled={!form.leave_type}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "MMM d, yyyy") : "Pick date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        disabled={(date) => {
+                          const typeDisabled = getDateDisabledFn()(date);
+                          const beforeStart = startDate ? isBefore(date, startDate) : false;
+                          return typeDisabled || beforeStart;
+                        }}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
+              
               {calculatedDays > 0 && (
                 <p className="text-sm text-muted-foreground">Total working days: <span className="font-medium text-foreground">{calculatedDays}</span></p>
               )}
-              <div><Label>Reason</Label><Textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} placeholder="Optional reason for leave" /></div>
-              <Button type="submit" className="w-full" disabled={createLeave.isPending || !form.leave_type || calculatedDays < 1}>
-                {createLeave.isPending ? 'Submitting...' : 'Submit Request'}
+              
+              {requiresMedicalCert ? (
+                <div className="space-y-2">
+                  <Label>Medical Certificate (Required for 3+ days sick leave)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleFileChange}
+                      className="flex-1"
+                    />
+                  </div>
+                  {medicalFile && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Upload className="h-3 w-3" /> {medicalFile.name}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <Label>Reason</Label>
+                  <Textarea 
+                    value={form.reason} 
+                    onChange={(e) => setForm({ ...form, reason: e.target.value })} 
+                    placeholder="Optional reason for leave" 
+                  />
+                </div>
+              )}
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={createLeave.isPending || uploading || !form.leave_type || calculatedDays < 1 || (requiresMedicalCert && !medicalFile)}
+              >
+                {uploading ? 'Uploading...' : createLeave.isPending ? 'Submitting...' : 'Submit Request'}
               </Button>
             </form>
           </DialogContent>
@@ -142,75 +314,85 @@ export default function Leaves() {
       <Card>
         <CardHeader><CardTitle>Leave Requests</CardTitle><CardDescription>View and manage leave requests</CardDescription></CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Start</TableHead>
-                <TableHead>End</TableHead>
-                <TableHead>Days</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                [1, 2, 3].map(i => (
-                  <TableRow key={i}>
-                    {[1, 2, 3, 4, 5, 6, 7].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
-                  </TableRow>
-                ))
-              ) : leaves && leaves.length > 0 ? (
-                leaves.map((l: any) => (
-                  <TableRow key={l.id}>
-                    <TableCell>{l.employees?.first_name} {l.employees?.last_name}</TableCell>
-                    <TableCell className="capitalize">{l.leave_type}</TableCell>
-                    <TableCell>{format(new Date(l.start_date), 'MMM d, yyyy')}</TableCell>
-                    <TableCell>{format(new Date(l.end_date), 'MMM d, yyyy')}</TableCell>
-                    <TableCell>{l.total_days}</TableCell>
-                    <TableCell>{getStatusBadge(l.status)}</TableCell>
-                    <TableCell>
-                      {canReview(l) && (
-                        <Dialog open={reviewLeave?.id === l.id} onOpenChange={(open) => !open && setReviewLeave(null)}>
-                          <DialogTrigger asChild>
-                            <Button size="sm" variant="outline" onClick={() => setReviewLeave(l)}>Review</Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader><DialogTitle>Review Leave Request</DialogTitle></DialogHeader>
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div><span className="text-muted-foreground">Employee:</span> <span className="font-medium">{l.employees?.first_name} {l.employees?.last_name}</span></div>
-                                <div><span className="text-muted-foreground">Type:</span> <span className="font-medium capitalize">{l.leave_type}</span></div>
-                                <div><span className="text-muted-foreground">From:</span> <span className="font-medium">{l.start_date}</span></div>
-                                <div><span className="text-muted-foreground">To:</span> <span className="font-medium">{l.end_date}</span></div>
-                                <div><span className="text-muted-foreground">Days:</span> <span className="font-medium">{l.total_days}</span></div>
-                                <div><span className="text-muted-foreground">Status:</span> {getStatusBadge(l.status)}</div>
-                              </div>
-                              {l.reason && <div><Label>Reason</Label><p className="text-sm bg-muted p-2 rounded">{l.reason}</p></div>}
-                              <div><Label>Remarks (optional)</Label><Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Add remarks..." /></div>
-                            </div>
-                            <DialogFooter className="gap-2">
-                              <Button variant="destructive" onClick={() => handleApprove('reject')} disabled={approveLeave.isPending}>
-                                <XCircle className="mr-2 h-4 w-4" /> Reject
-                              </Button>
-                              <Button onClick={() => handleApprove('approve')} disabled={approveLeave.isPending}>
-                                <CheckCircle className="mr-2 h-4 w-4" /> Approve
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No leave requests</TableCell>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Start</TableHead>
+                  <TableHead>End</TableHead>
+                  <TableHead>Days</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  [1, 2, 3].map(i => (
+                    <TableRow key={i}>
+                      {[1, 2, 3, 4, 5, 6, 7].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
+                    </TableRow>
+                  ))
+                ) : leaves && leaves.length > 0 ? (
+                  leaves.map((l: any) => (
+                    <TableRow key={l.id}>
+                      <TableCell>{l.employees?.first_name} {l.employees?.last_name}</TableCell>
+                      <TableCell className="capitalize">{l.leave_type}</TableCell>
+                      <TableCell>{format(new Date(l.start_date), 'MMM d, yyyy')}</TableCell>
+                      <TableCell>{format(new Date(l.end_date), 'MMM d, yyyy')}</TableCell>
+                      <TableCell>{l.total_days}</TableCell>
+                      <TableCell>{getStatusBadge(l.status)}</TableCell>
+                      <TableCell>
+                        {canReview(l) && (
+                          <Dialog open={reviewLeave?.id === l.id} onOpenChange={(open) => !open && setReviewLeave(null)}>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="outline" onClick={() => setReviewLeave(l)}>Review</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader><DialogTitle>Review Leave Request</DialogTitle></DialogHeader>
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                  <div><span className="text-muted-foreground">Employee:</span> <span className="font-medium">{l.employees?.first_name} {l.employees?.last_name}</span></div>
+                                  <div><span className="text-muted-foreground">Type:</span> <span className="font-medium capitalize">{l.leave_type}</span></div>
+                                  <div><span className="text-muted-foreground">From:</span> <span className="font-medium">{l.start_date}</span></div>
+                                  <div><span className="text-muted-foreground">To:</span> <span className="font-medium">{l.end_date}</span></div>
+                                  <div><span className="text-muted-foreground">Days:</span> <span className="font-medium">{l.total_days}</span></div>
+                                  <div><span className="text-muted-foreground">Status:</span> {getStatusBadge(l.status)}</div>
+                                </div>
+                                {l.reason && <div><Label>Reason</Label><p className="text-sm bg-muted p-2 rounded">{l.reason}</p></div>}
+                                {l.medical_certificate_url && (
+                                  <div>
+                                    <Label>Medical Certificate</Label>
+                                    <a href={l.medical_certificate_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline block">
+                                      View Certificate
+                                    </a>
+                                  </div>
+                                )}
+                                <div><Label>Remarks (optional)</Label><Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Add remarks..." /></div>
+                              </div>
+                              <DialogFooter className="gap-2">
+                                <Button variant="destructive" onClick={() => handleApprove('reject')} disabled={approveLeave.isPending}>
+                                  <XCircle className="mr-2 h-4 w-4" /> Reject
+                                </Button>
+                                <Button onClick={() => handleApprove('approve')} disabled={approveLeave.isPending}>
+                                  <CheckCircle className="mr-2 h-4 w-4" /> Approve
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No leave requests</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
