@@ -421,6 +421,7 @@ export type Database = {
           manager_action_at: string | null
           manager_id: string | null
           manager_remarks: string | null
+          medical_certificate_url: string | null
           reason: string | null
           start_date: string
           status: Database["public"]["Enums"]["leave_status"] | null
@@ -439,6 +440,7 @@ export type Database = {
           manager_action_at?: string | null
           manager_id?: string | null
           manager_remarks?: string | null
+          medical_certificate_url?: string | null
           reason?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["leave_status"] | null
@@ -457,6 +459,7 @@ export type Database = {
           manager_action_at?: string | null
           manager_id?: string | null
           manager_remarks?: string | null
+          medical_certificate_url?: string | null
           reason?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["leave_status"] | null
@@ -748,6 +751,30 @@ export type Database = {
           is_taxable?: boolean | null
           name?: string
           type?: string
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: Json
         }
         Relationships: []
       }

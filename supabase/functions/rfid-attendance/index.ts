@@ -19,21 +19,22 @@ serve(async (req) => {
   }
 
   try {
-    // Verify terminal secret for security
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify terminal secret for security (optional - skip if not configured)
     const terminalSecret = Deno.env.get('RFID_TERMINAL_SECRET');
     const providedSecret = req.headers.get('x-terminal-secret');
     
-    if (terminalSecret && terminalSecret !== providedSecret) {
+    // Only validate if a secret is configured AND it's not empty
+    if (terminalSecret && terminalSecret.trim() !== '' && terminalSecret !== providedSecret) {
       console.error('Invalid terminal secret provided');
       return new Response(
         JSON.stringify({ error: 'Unauthorized terminal' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { rfid_card_number, employee_id, timestamp }: AttendanceRequest = await req.json();
 
@@ -97,14 +98,30 @@ serve(async (req) => {
     let result;
     let action: 'time_in' | 'time_out';
 
+    // Fetch terminal settings for work hours
+    const { data: settingsData } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'terminal')
+      .single();
+    
+    const settings = settingsData?.value || { 
+      work_start_time: '08:00', 
+      work_end_time: '17:00', 
+      grace_period_minutes: 0 
+    };
+
     if (!existingRecord) {
       // First scan of the day - Time In
       action = 'time_in';
       
-      // Calculate late minutes (assuming 8:00 AM start time)
-      const startTime = new Date(today + 'T08:00:00');
+      // Calculate late minutes based on configured start time
+      const [startHour, startMin] = settings.work_start_time.split(':').map(Number);
+      const startTime = new Date(today + `T${settings.work_start_time}:00`);
+      const graceEndTime = new Date(startTime.getTime() + (settings.grace_period_minutes * 60 * 1000));
+      
       let lateMinutes = 0;
-      if (now > startTime) {
+      if (now > graceEndTime) {
         lateMinutes = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60));
       }
 
@@ -135,8 +152,8 @@ serve(async (req) => {
       const timeIn = new Date(existingRecord.time_in);
       const hoursWorked = (now.getTime() - timeIn.getTime()) / (1000 * 60 * 60);
       
-      // Calculate undertime (assuming 8 hours work day, 5 PM end)
-      const endTime = new Date(today + 'T17:00:00');
+      // Calculate undertime based on configured end time
+      const endTime = new Date(today + `T${settings.work_end_time}:00`);
       let undertimeMinutes = 0;
       if (now < endTime) {
         undertimeMinutes = Math.floor((endTime.getTime() - now.getTime()) / (1000 * 60));

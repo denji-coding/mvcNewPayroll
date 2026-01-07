@@ -33,11 +33,17 @@ export default function Payroll() {
   const deletePayrollRecord = useDeletePayrollRecord();
 
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('periods');
   const { data: records, isLoading: recordsLoading } = usePayrollRecords(selectedPeriod || undefined);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [periodForm, setPeriodForm] = useState({ period_start: '', period_end: '', pay_date: '' });
   const [viewPayslip, setViewPayslip] = useState<any>(null);
+
+  const handleViewPeriod = (periodId: string) => {
+    setSelectedPeriod(periodId);
+    setActiveTab('records');
+  };
 
   const handleCreatePeriod = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,8 +82,8 @@ export default function Payroll() {
         )}
       </div>
 
-      <Tabs defaultValue="periods">
-        <TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="periods">Payroll Periods</TabsTrigger>
           <TabsTrigger value="records">Payroll Records</TabsTrigger>
           <TabsTrigger value="components">Salary Components</TabsTrigger>
@@ -99,7 +105,7 @@ export default function Payroll() {
                       <TableCell>{getStatusBadge(p.status)}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setSelectedPeriod(p.id)}><Eye className="h-4 w-4" /></Button>
+                          <Button size="sm" variant="outline" onClick={() => handleViewPeriod(p.id)}><Eye className="h-4 w-4" /></Button>
                           {isHR && p.status === 'draft' && <Button size="sm" onClick={() => runPayroll.mutate({ periodId: p.id })}><Calculator className="mr-1 h-4 w-4" />Run</Button>}
                           {isHR && p.status === 'processing' && <Button size="sm" variant="outline" onClick={() => approvePayroll.mutate(p.id)}><CheckCircle className="mr-1 h-4 w-4" />Approve</Button>}
                           {isHR && (p.status === 'draft' || p.status === 'processing') && (
