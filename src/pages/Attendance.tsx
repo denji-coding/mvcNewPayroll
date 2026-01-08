@@ -10,6 +10,8 @@ import { useAttendanceByDate, useAttendanceStats, useUpdateAttendance } from '@/
 import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
+import { usePagination } from '@/hooks/usePagination';
+import { TablePagination } from '@/components/TablePagination';
 
 export default function Attendance() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -20,6 +22,8 @@ export default function Attendance() {
 
   const [editRecord, setEditRecord] = useState<any>(null);
   const [editForm, setEditForm] = useState({ time_in: '', time_out: '', remarks: '' });
+
+  const { currentPage, setCurrentPage, totalPages, paginatedItems } = usePagination(attendance || [], 10);
 
   const formatTime = (timestamp: string | null) => {
     if (!timestamp) return '-';
@@ -154,8 +158,8 @@ export default function Attendance() {
                     {[1, 2, 3, 4, 5, 6, 7].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
                   </TableRow>
                 ))
-              ) : attendance && attendance.length > 0 ? (
-                attendance.map((a: any) => (
+              ) : paginatedItems.length > 0 ? (
+                paginatedItems.map((a: any) => (
                   <TableRow key={a.id}>
                     <TableCell>{a.employees?.employee_id}</TableCell>
                     <TableCell>{a.employees?.first_name} {a.employees?.last_name}</TableCell>
@@ -197,6 +201,11 @@ export default function Attendance() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
     </div>
