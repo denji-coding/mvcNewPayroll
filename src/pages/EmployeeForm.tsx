@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save } from 'lucide-react';
 import { SalaryAdjustmentsCard } from '@/components/employees/SalaryAdjustmentsCard';
@@ -24,6 +25,7 @@ export default function EmployeeForm() {
     emergency_contact_name: '', emergency_contact_phone: '', rfid_card_number: '',
     role: 'employee' as 'employee' | 'branch_manager' | 'hr_admin',
     password: '',
+    employment_status: 'active' as 'active' | 'terminated',
   });
 
   useEffect(() => {
@@ -38,7 +40,14 @@ export default function EmployeeForm() {
 
   const fetchEmployee = async () => {
     const { data } = await supabase.from('employees').select('*').eq('id', id).single();
-    if (data) setForm({ ...form, ...data, date_of_birth: data.date_of_birth || '', date_hired: data.date_hired || '', basic_salary: data.basic_salary?.toString() || '' });
+    if (data) setForm({ 
+      ...form, 
+      ...data, 
+      date_of_birth: data.date_of_birth || '', 
+      date_hired: data.date_hired || '', 
+      basic_salary: data.basic_salary?.toString() || '',
+      employment_status: data.employment_status === 'terminated' ? 'terminated' : 'active',
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,6 +137,26 @@ export default function EmployeeForm() {
             <div><Label>Date Hired *</Label><Input type="date" value={form.date_hired} onChange={(e) => updateField('date_hired', e.target.value)} required /></div>
             <div><Label>Basic Salary (₱)</Label><Input type="number" value={form.basic_salary} onChange={(e) => updateField('basic_salary', e.target.value)} /></div>
             <div><Label>RFID Card Number</Label><Input value={form.rfid_card_number} onChange={(e) => updateField('rfid_card_number', e.target.value)} /></div>
+            
+            {id && (
+              <div className="md:col-span-3">
+                <Label className="mb-3 block">Employment Status</Label>
+                <RadioGroup
+                  value={form.employment_status}
+                  onValueChange={(v) => updateField('employment_status', v)}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="active" id="status-active" />
+                    <Label htmlFor="status-active" className="font-normal cursor-pointer">Active</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="terminated" id="status-terminated" />
+                    <Label htmlFor="status-terminated" className="font-normal cursor-pointer">Inactive / Terminated</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
           </CardContent>
         </Card>
 

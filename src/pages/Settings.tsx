@@ -438,7 +438,7 @@ function AnnouncementManagement() {
     const data = {
       title: form.title,
       content: form.content,
-      branch_id: form.branch_id || null,
+      branch_id: form.branch_id === 'all' || !form.branch_id ? null : form.branch_id,
     };
 
     if (editingAnnouncement) {
@@ -457,7 +457,7 @@ function AnnouncementManagement() {
     setForm({
       title: announcement.title,
       content: announcement.content,
-      branch_id: announcement.branch_id || '',
+      branch_id: announcement.branch_id || 'all',
     });
     setDialogOpen(true);
   };
@@ -519,7 +519,7 @@ function AnnouncementManagement() {
                       <SelectValue placeholder="All branches" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Branches</SelectItem>
+                      <SelectItem value="all">All Branches</SelectItem>
                       {branches?.map((branch) => (
                         <SelectItem key={branch.id} value={branch.id}>
                           {branch.name}

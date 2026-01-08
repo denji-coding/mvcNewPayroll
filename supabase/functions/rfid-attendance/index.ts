@@ -68,9 +68,10 @@ serve(async (req) => {
       .eq('employment_status', 'active');
 
     if (rfid_card_number) {
-      employeeQuery = employeeQuery.eq('rfid_card_number', rfid_card_number);
+      employeeQuery = employeeQuery.ilike('rfid_card_number', rfid_card_number);
     } else if (employee_id) {
-      employeeQuery = employeeQuery.eq('employee_id', employee_id);
+      // Case-insensitive matching for employee_id
+      employeeQuery = employeeQuery.ilike('employee_id', employee_id);
     }
 
     const { data: employee, error: empError } = await employeeQuery.single();

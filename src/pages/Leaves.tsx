@@ -17,6 +17,8 @@ import { format, startOfToday, isBefore, isAfter } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { usePagination } from '@/hooks/usePagination';
+import { TablePagination } from '@/components/TablePagination';
 
 const LEAVE_TYPES = [
   { value: 'vacation', label: 'Vacation Leave' },
@@ -43,6 +45,8 @@ export default function Leaves() {
   const [remarks, setRemarks] = useState('');
   const [medicalFile, setMedicalFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const { currentPage, setCurrentPage, totalPages, paginatedItems } = usePagination(leaves || [], 10);
 
   const today = startOfToday();
   const isSickLeave = form.leave_type === 'sick';
@@ -334,8 +338,8 @@ export default function Leaves() {
                       {[1, 2, 3, 4, 5, 6, 7].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
                     </TableRow>
                   ))
-                ) : leaves && leaves.length > 0 ? (
-                  leaves.map((l: any) => (
+                ) : paginatedItems.length > 0 ? (
+                  paginatedItems.map((l: any) => (
                     <TableRow key={l.id}>
                       <TableCell>{l.employees?.first_name} {l.employees?.last_name}</TableCell>
                       <TableCell className="capitalize">{l.leave_type}</TableCell>
@@ -393,6 +397,11 @@ export default function Leaves() {
               </TableBody>
             </Table>
           </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </CardContent>
       </Card>
     </div>
