@@ -34,15 +34,17 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="general">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:flex lg:w-auto gap-1">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="payroll">Payroll</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          {isHR && <TabsTrigger value="terminal">Terminal</TabsTrigger>}
-          {isHR && <TabsTrigger value="holidays">Holidays</TabsTrigger>}
-          {isHR && <TabsTrigger value="announcements">Announcements</TabsTrigger>}
-          {isHR && <TabsTrigger value="users">Users</TabsTrigger>}
-        </TabsList>
+        <div className="overflow-x-auto pb-2">
+          <TabsList className="inline-flex w-auto min-w-full lg:w-auto gap-1">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="payroll">Payroll</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            {isHR && <TabsTrigger value="terminal">Terminal</TabsTrigger>}
+            {isHR && <TabsTrigger value="holidays">Holidays</TabsTrigger>}
+            {isHR && <TabsTrigger value="announcements">Announcements</TabsTrigger>}
+            {isHR && <TabsTrigger value="users">Users</TabsTrigger>}
+          </TabsList>
+        </div>
 
         <TabsContent value="general" className="mt-4 space-y-4">
           <GeneralSettings />
