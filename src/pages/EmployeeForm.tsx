@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save } from 'lucide-react';
 import { SalaryAdjustmentsCard } from '@/components/employees/SalaryAdjustmentsCard';
@@ -138,25 +138,13 @@ export default function EmployeeForm() {
             <div><Label>Basic Salary (₱)</Label><Input type="number" value={form.basic_salary} onChange={(e) => updateField('basic_salary', e.target.value)} /></div>
             <div><Label>RFID Card Number</Label><Input value={form.rfid_card_number} onChange={(e) => updateField('rfid_card_number', e.target.value)} /></div>
             
-            {id && (
-              <div className="md:col-span-3">
-                <Label className="mb-3 block">Employment Status</Label>
-                <RadioGroup
-                  value={form.employment_status}
-                  onValueChange={(v) => updateField('employment_status', v)}
-                  className="flex gap-6"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="active" id="status-active" />
-                    <Label htmlFor="status-active" className="font-normal cursor-pointer">Active</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="terminated" id="status-terminated" />
-                    <Label htmlFor="status-terminated" className="font-normal cursor-pointer">Inactive / Terminated</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <Switch 
+                checked={form.employment_status === 'active'} 
+                onCheckedChange={(checked) => updateField('employment_status', checked ? 'active' : 'terminated')} 
+              />
+              <Label>Active Employee</Label>
+            </div>
           </CardContent>
         </Card>
 

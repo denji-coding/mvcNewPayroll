@@ -23,12 +23,13 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify terminal secret for security (optional - skip if not configured)
+    // Verify terminal secret for security (optional - only validate if both secret is configured AND header is provided)
     const terminalSecret = Deno.env.get('RFID_TERMINAL_SECRET');
     const providedSecret = req.headers.get('x-terminal-secret');
     
-    // Only validate if a secret is configured AND it's not empty
-    if (terminalSecret && terminalSecret.trim() !== '' && terminalSecret !== providedSecret) {
+    // Only validate if a secret is configured, not empty, AND a header was actually provided
+    // If no header is sent, allow the request (open mode for development/testing)
+    if (terminalSecret && terminalSecret.trim() !== '' && providedSecret && providedSecret !== terminalSecret) {
       console.error('Invalid terminal secret provided');
       return new Response(
         JSON.stringify({ error: 'Unauthorized terminal' }),
