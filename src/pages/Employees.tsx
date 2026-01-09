@@ -16,7 +16,7 @@ export default function Employees() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'active' | 'deleted'>('active');
+  const [viewMode, setViewMode] = useState<'active' | 'inactive' | 'deleted'>('active');
 
   useEffect(() => {
     fetchEmployees();
@@ -31,6 +31,8 @@ export default function Employees() {
     
     if (viewMode === 'active') {
       query = query.eq('employment_status', 'active');
+    } else if (viewMode === 'inactive') {
+      query = query.eq('employment_status', 'inactive');
     } else {
       query = query.eq('employment_status', 'terminated');
     }
@@ -101,10 +103,11 @@ export default function Employees() {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4">
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'active' | 'deleted')}>
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'active' | 'inactive' | 'deleted')}>
               <TabsList>
-                <TabsTrigger value="active">Active Employees</TabsTrigger>
-                <TabsTrigger value="deleted">Deleted Employees</TabsTrigger>
+                <TabsTrigger value="active">Active</TabsTrigger>
+                <TabsTrigger value="inactive">Inactive</TabsTrigger>
+                <TabsTrigger value="deleted">Deleted</TabsTrigger>
               </TabsList>
             </Tabs>
             <div className="relative flex-1 max-w-sm">
@@ -143,33 +146,7 @@ export default function Employees() {
                             <Button variant="ghost" size="icon" asChild>
                               <Link to={`/employees/${emp.id}`}><Edit className="h-4 w-4" /></Link>
                             </Button>
-                            {viewMode === 'active' ? (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Deactivate Employee?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will set {emp.first_name} {emp.last_name}'s status to terminated. 
-                                      You can restore them later from the "Deleted Employees" tab.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                      onClick={() => handleSoftDelete(emp.id, `${emp.first_name} ${emp.last_name}`)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Deactivate
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            ) : (
+                            {viewMode === 'deleted' ? (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="ghost" size="icon" className="text-success hover:text-success">
@@ -193,6 +170,32 @@ export default function Employees() {
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
+                            ) : (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Employee?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will set {emp.first_name} {emp.last_name}'s status to terminated. 
+                                      You can restore them later from the "Deleted" tab.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleSoftDelete(emp.id, `${emp.first_name} ${emp.last_name}`)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             )}
                           </div>
                         </TableCell>
@@ -201,7 +204,7 @@ export default function Employees() {
                     {paginatedItems.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          {viewMode === 'active' ? 'No active employees found' : 'No deleted employees'}
+                          {viewMode === 'active' ? 'No active employees found' : viewMode === 'inactive' ? 'No inactive employees found' : 'No deleted employees'}
                         </TableCell>
                       </TableRow>
                     )}
