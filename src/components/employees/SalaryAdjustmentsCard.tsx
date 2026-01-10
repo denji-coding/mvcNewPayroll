@@ -61,11 +61,11 @@ export function SalaryAdjustmentsCard({ employeeId }: SalaryAdjustmentsCardProps
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <CardTitle>Salary Adjustments</CardTitle>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Add Adjustment</Button>
+            <Button size="sm" className="w-full sm:w-auto"><Plus className="mr-2 h-4 w-4" /> Add Adjustment</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Add Salary Adjustment</DialogTitle></DialogHeader>
@@ -131,8 +131,9 @@ export function SalaryAdjustmentsCard({ employeeId }: SalaryAdjustmentsCardProps
         ) : adjustments.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">No salary adjustments configured</div>
         ) : (
-          <Table>
-            <TableHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
               <TableRow>
                 <TableHead>Component</TableHead>
                 <TableHead>Type</TableHead>
@@ -164,8 +165,9 @@ export function SalaryAdjustmentsCard({ employeeId }: SalaryAdjustmentsCardProps
                   </TableCell>
                 </TableRow>
               ))}
-            </TableBody>
-          </Table>
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
