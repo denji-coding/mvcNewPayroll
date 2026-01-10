@@ -25,7 +25,7 @@ export default function EmployeeForm() {
     emergency_contact_name: '', emergency_contact_phone: '', rfid_card_number: '',
     role: 'employee' as 'employee' | 'branch_manager' | 'hr_admin',
     password: '',
-    employment_status: 'active' as 'active' | 'terminated',
+    employment_status: 'active' as 'active' | 'inactive' | 'terminated',
   });
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function EmployeeForm() {
       date_of_birth: data.date_of_birth || '', 
       date_hired: data.date_hired || '', 
       basic_salary: data.basic_salary?.toString() || '',
-      employment_status: data.employment_status === 'terminated' ? 'terminated' : 'active',
+      employment_status: (data.employment_status as 'active' | 'inactive' | 'terminated') || 'active',
     });
   };
 
@@ -138,12 +138,16 @@ export default function EmployeeForm() {
             <div><Label>Basic Salary (₱)</Label><Input type="number" value={form.basic_salary} onChange={(e) => updateField('basic_salary', e.target.value)} /></div>
             <div><Label>RFID Card Number</Label><Input value={form.rfid_card_number} onChange={(e) => updateField('rfid_card_number', e.target.value)} /></div>
             
-            <div className="flex items-center gap-2">
-              <Switch 
-                checked={form.employment_status === 'active'} 
-                onCheckedChange={(checked) => updateField('employment_status', checked ? 'active' : 'terminated')} 
-              />
-              <Label>Active Employee</Label>
+            <div>
+              <Label>Employment Status</Label>
+              <Select value={form.employment_status} onValueChange={(v) => updateField('employment_status', v)}>
+                <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="terminated">Terminated</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

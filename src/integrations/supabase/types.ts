@@ -816,7 +816,12 @@ export type Database = {
     }
     Enums: {
       app_role: "hr_admin" | "branch_manager" | "employee"
-      employment_status: "active" | "resigned" | "terminated" | "on_leave"
+      employment_status:
+        | "active"
+        | "resigned"
+        | "terminated"
+        | "on_leave"
+        | "inactive"
       leave_status:
         | "pending"
         | "manager_approved"
@@ -968,7 +973,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["hr_admin", "branch_manager", "employee"],
-      employment_status: ["active", "resigned", "terminated", "on_leave"],
+      employment_status: [
+        "active",
+        "resigned",
+        "terminated",
+        "on_leave",
+        "inactive",
+      ],
       leave_status: [
         "pending",
         "manager_approved",

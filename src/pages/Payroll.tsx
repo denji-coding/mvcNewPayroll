@@ -83,12 +83,14 @@ export default function Payroll() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex-wrap">
-          <TabsTrigger value="periods">Payroll Periods</TabsTrigger>
-          <TabsTrigger value="records">Payroll Records</TabsTrigger>
-          <TabsTrigger value="components">Salary Components</TabsTrigger>
-          <TabsTrigger value="loans">Loans</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-2">
+          <TabsList className="inline-flex w-auto min-w-full gap-1">
+            <TabsTrigger value="periods">Payroll Periods</TabsTrigger>
+            <TabsTrigger value="records">Payroll Records</TabsTrigger>
+            <TabsTrigger value="components">Salary Components</TabsTrigger>
+            <TabsTrigger value="loans">Loans</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="periods" className="mt-4">
           <Card>
