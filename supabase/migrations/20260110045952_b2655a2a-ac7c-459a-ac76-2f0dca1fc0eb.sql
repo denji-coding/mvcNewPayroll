@@ -1,0 +1,1 @@
+ALTER TYPE employment_status ADD VALUE 'inactive';

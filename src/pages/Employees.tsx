@@ -84,7 +84,8 @@ export default function Employees() {
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       active: 'bg-success/20 text-success',
-      resigned: 'bg-warning/20 text-warning',
+      inactive: 'bg-warning/20 text-warning',
+      resigned: 'bg-muted/20 text-muted-foreground',
       terminated: 'bg-destructive/20 text-destructive',
       on_leave: 'bg-info/20 text-info',
     };
