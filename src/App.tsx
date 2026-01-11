@@ -14,6 +14,7 @@ import EmployeeForm from "./pages/EmployeeForm";
 import Branches from "./pages/Branches";
 import Attendance from "./pages/Attendance";
 import ClockInOut from "./pages/ClockInOut";
+import MyAttendance from "./pages/MyAttendance";
 import AttendanceTerminal from "./pages/AttendanceTerminal";
 import Leaves from "./pages/Leaves";
 import Payroll from "./pages/Payroll";
@@ -99,6 +100,7 @@ function AppRoutes() {
         <Route path="branches" element={<Branches />} />
         <Route path="attendance" element={<Attendance />} />
         <Route path="clock-in-out" element={<ClockInOut />} />
+        <Route path="my-attendance" element={<MyAttendance />} />
         <Route path="leaves" element={<Leaves />} />
         <Route path="payroll" element={<Payroll />} />
         <Route path="reports" element={<Reports />} />

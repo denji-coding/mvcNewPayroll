@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useTerminalSettings } from './useSettings';
 
 interface AttendanceResult {
   success: boolean;
@@ -19,6 +20,9 @@ export function useAttendanceTerminal() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AttendanceResult | null>(null);
+  
+  // Fetch terminal settings
+  const { data: settings, isLoading: settingsLoading } = useTerminalSettings();
 
   // Update clock every second
   useEffect(() => {
@@ -134,6 +138,8 @@ export function useAttendanceTerminal() {
     currentTime,
     isLoading,
     result,
+    settings,
+    settingsLoading,
     submitRfidAttendance,
     submitManualAttendance,
     clearResult,

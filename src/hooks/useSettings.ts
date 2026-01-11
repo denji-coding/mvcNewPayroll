@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface TerminalSettings {
+  terminal_enabled: boolean;
   work_start_time: string;
   work_end_time: string;
   grace_period_minutes: number;
