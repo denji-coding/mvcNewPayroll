@@ -178,6 +178,7 @@ function TerminalSettingsTab() {
   const updateSettings = useUpdateTerminalSettings();
   
   const [form, setForm] = useState<TerminalSettings>({
+    terminal_enabled: true,
     work_start_time: '08:00',
     work_end_time: '17:00',
     grace_period_minutes: 0,
@@ -208,6 +209,17 @@ function TerminalSettingsTab() {
         <CardDescription>Configure work hours and attendance rules</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label>Enable Attendance Terminal</Label>
+            <p className="text-sm text-muted-foreground">Allow employees to use the attendance terminal</p>
+          </div>
+          <Switch
+            checked={form.terminal_enabled}
+            onCheckedChange={(v) => setForm({ ...form, terminal_enabled: v })}
+          />
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Work Start Time</Label>

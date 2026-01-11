@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CreditCard, User, CheckCircle2, XCircle, Clock, Building2, ArrowLeft, Loader2 } from 'lucide-react';
+import { CreditCard, User, CheckCircle2, XCircle, Clock, Building2, ArrowLeft, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,19 +18,26 @@ export default function AttendanceTerminal() {
     currentTime,
     isLoading,
     result,
+    settings,
+    settingsLoading,
     submitRfidAttendance,
     submitManualAttendance,
     clearResult,
   } = useAttendanceTerminal();
 
+  const isTerminalEnabled = settings?.terminal_enabled !== false;
+  const isManualEntryAllowed = settings?.allow_manual_entry !== false;
+
   // Auto-focus RFID input
   useEffect(() => {
-    if (mode === 'rfid' && !result) {
-      rfidInputRef.current?.focus();
-    } else if (mode === 'manual' && !result) {
-      manualInputRef.current?.focus();
+    if (isTerminalEnabled && !result) {
+      if (mode === 'rfid') {
+        rfidInputRef.current?.focus();
+      } else if (mode === 'manual') {
+        manualInputRef.current?.focus();
+      }
     }
-  }, [mode, result]);
+  }, [mode, result, isTerminalEnabled]);
 
   // Clear input when result clears
   useEffect(() => {
@@ -42,6 +49,13 @@ export default function AttendanceTerminal() {
       }
     }
   }, [result, mode]);
+
+  // Force RFID mode if manual entry is disabled
+  useEffect(() => {
+    if (!isManualEntryAllowed && mode === 'manual') {
+      setMode('rfid');
+    }
+  }, [isManualEntryAllowed, mode]);
 
   const handleRfidSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,9 +72,84 @@ export default function AttendanceTerminal() {
   };
 
   const handleModeSwitch = () => {
+    if (!isManualEntryAllowed) return;
     clearResult();
     setMode(mode === 'rfid' ? 'manual' : 'rfid');
   };
+
+  // Show loading while settings are being fetched
+  if (settingsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary via-primary/95 to-primary/80 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-primary-foreground mx-auto mb-4 animate-spin" />
+          <p className="text-primary-foreground text-lg">Loading terminal...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show disabled state if terminal is disabled
+  if (!isTerminalEnabled) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-muted via-muted/95 to-muted/80 flex flex-col">
+        {/* Header */}
+        <header className="bg-background/10 backdrop-blur-sm border-b border-background/20 py-4 px-6">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-background rounded-xl flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-foreground">MVC Corporation</h1>
+                <p className="text-sm text-muted-foreground">Attendance System</p>
+              </div>
+            </div>
+            <a
+              href="/"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Back to Portal</span>
+            </a>
+          </div>
+        </header>
+
+        {/* Main Content - Disabled State */}
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="w-full max-w-lg">
+            <Card className="bg-background shadow-2xl border-0">
+              <CardContent className="p-8 text-center">
+                <div className="w-24 h-24 bg-warning/10 rounded-full mx-auto mb-6 flex items-center justify-center">
+                  <AlertTriangle className="w-12 h-12 text-warning" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground mb-4">
+                  Terminal Disabled
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  The attendance terminal is currently disabled by the administrator.
+                  Please contact HR for assistance.
+                </p>
+                <a href="/">
+                  <Button variant="outline" className="w-full">
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Return to Portal
+                  </Button>
+                </a>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="bg-background/10 backdrop-blur-sm border-t border-background/20 py-3 px-6">
+          <p className="text-center text-sm text-muted-foreground">
+            © {new Date().getFullYear()} MVC Corporation. All rights reserved.
+          </p>
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary via-primary/95 to-primary/80 flex flex-col">
@@ -158,35 +247,37 @@ export default function AttendanceTerminal() {
                 </div>
               ) : (
                 <>
-                  {/* Mode Toggle */}
-                  <div className="flex justify-center mb-6">
-                    <div className="inline-flex rounded-lg bg-muted p-1">
-                      <button
-                        onClick={() => setMode('rfid')}
-                        className={cn(
-                          'px-4 py-2 rounded-md text-sm font-medium transition-colors',
-                          mode === 'rfid'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        )}
-                      >
-                        <CreditCard className="w-4 h-4 inline-block mr-2" />
-                        RFID Card
-                      </button>
-                      <button
-                        onClick={() => setMode('manual')}
-                        className={cn(
-                          'px-4 py-2 rounded-md text-sm font-medium transition-colors',
-                          mode === 'manual'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        )}
-                      >
-                        <User className="w-4 h-4 inline-block mr-2" />
-                        Employee ID
-                      </button>
+                  {/* Mode Toggle - only show if manual entry is allowed */}
+                  {isManualEntryAllowed && (
+                    <div className="flex justify-center mb-6">
+                      <div className="inline-flex rounded-lg bg-muted p-1">
+                        <button
+                          onClick={() => setMode('rfid')}
+                          className={cn(
+                            'px-4 py-2 rounded-md text-sm font-medium transition-colors',
+                            mode === 'rfid'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          <CreditCard className="w-4 h-4 inline-block mr-2" />
+                          RFID Card
+                        </button>
+                        <button
+                          onClick={() => setMode('manual')}
+                          className={cn(
+                            'px-4 py-2 rounded-md text-sm font-medium transition-colors',
+                            mode === 'manual'
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          <User className="w-4 h-4 inline-block mr-2" />
+                          Employee ID
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {mode === 'rfid' ? (
                     <form onSubmit={handleRfidSubmit} className="space-y-6">
@@ -213,16 +304,18 @@ export default function AttendanceTerminal() {
                         disabled={isLoading}
                       />
 
-                      <p className="text-center text-sm text-muted-foreground">
-                        Lost your ID?{' '}
-                        <button
-                          type="button"
-                          onClick={handleModeSwitch}
-                          className="text-primary hover:underline font-medium"
-                        >
-                          Enter Employee ID manually
-                        </button>
-                      </p>
+                      {isManualEntryAllowed && (
+                        <p className="text-center text-sm text-muted-foreground">
+                          Lost your ID?{' '}
+                          <button
+                            type="button"
+                            onClick={handleModeSwitch}
+                            className="text-primary hover:underline font-medium"
+                          >
+                            Enter Employee ID manually
+                          </button>
+                        </p>
+                      )}
                     </form>
                   ) : (
                     <form onSubmit={handleManualSubmit} className="space-y-6">

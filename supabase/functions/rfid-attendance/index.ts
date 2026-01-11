@@ -12,6 +12,14 @@ interface AttendanceRequest {
   timestamp?: string;
 }
 
+interface TerminalSettings {
+  terminal_enabled?: boolean;
+  work_start_time: string;
+  work_end_time: string;
+  grace_period_minutes: number;
+  allow_manual_entry: boolean;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -37,7 +45,38 @@ serve(async (req) => {
       );
     }
 
+    // Fetch terminal settings first to check if terminal is enabled
+    const { data: settingsData } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'terminal')
+      .single();
+    
+    const settings: TerminalSettings = settingsData?.value || { 
+      terminal_enabled: true,
+      work_start_time: '08:00', 
+      work_end_time: '17:00', 
+      grace_period_minutes: 0,
+      allow_manual_entry: true
+    };
+
+    // Check if terminal is enabled
+    if (settings.terminal_enabled === false) {
+      return new Response(
+        JSON.stringify({ error: 'Attendance terminal is currently disabled' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { rfid_card_number, employee_id, timestamp }: AttendanceRequest = await req.json();
+
+    // Check if manual entry is allowed when using employee_id
+    if (employee_id && !rfid_card_number && settings.allow_manual_entry === false) {
+      return new Response(
+        JSON.stringify({ error: 'Manual entry is disabled. Please use your RFID card.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Validate input
     if (!rfid_card_number && !employee_id) {
@@ -99,19 +138,6 @@ serve(async (req) => {
 
     let result;
     let action: 'time_in' | 'time_out';
-
-    // Fetch terminal settings for work hours
-    const { data: settingsData } = await supabase
-      .from('settings')
-      .select('value')
-      .eq('key', 'terminal')
-      .single();
-    
-    const settings = settingsData?.value || { 
-      work_start_time: '08:00', 
-      work_end_time: '17:00', 
-      grace_period_minutes: 0 
-    };
 
     if (!existingRecord) {
       // First scan of the day - Time In
