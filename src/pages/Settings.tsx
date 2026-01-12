@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Edit, Trash2, Calendar, Megaphone, Users, Building, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, Megaphone, Users, Building, Clock, Shield, Sun, Moon, Monitor } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '@/hooks/useAuth';
 import { useBranches } from '@/hooks/useBranches';
@@ -19,6 +19,8 @@ import { useHolidays, useCreateHoliday, useUpdateHoliday, useDeleteHoliday } fro
 import { useAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useToggleAnnouncementPublish, useDeleteAnnouncement } from '@/hooks/useAnnouncements';
 import { useUsersWithRoles, useBranchManagers, useUpdateUserRole, useAssignBranchManager, useRemoveBranchManager } from '@/hooks/useUserRoles';
 import { useTerminalSettings, useUpdateTerminalSettings, TerminalSettings } from '@/hooks/useSettings';
+import { useRolePermissions, useUpdatePermission, AVAILABLE_PERMISSIONS } from '@/hooks/usePermissions';
+import { useTheme } from '@/components/theme-provider';
 import { Database } from '@/integrations/supabase/types';
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -43,6 +45,7 @@ export default function Settings() {
             {isHR && <TabsTrigger value="holidays">Holidays</TabsTrigger>}
             {isHR && <TabsTrigger value="announcements">Announcements</TabsTrigger>}
             {isHR && <TabsTrigger value="users">Users</TabsTrigger>}
+            {isHR && <TabsTrigger value="permissions">Permissions</TabsTrigger>}
           </TabsList>
         </div>
 
@@ -81,27 +84,84 @@ export default function Settings() {
             <UserRoleManagement />
           </TabsContent>
         )}
+
+        {isHR && (
+          <TabsContent value="permissions" className="mt-4 space-y-4">
+            <PermissionsManagement />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
 }
 
 function GeneralSettings() {
+  const { theme, setTheme } = useTheme();
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Company Information</CardTitle>
-        <CardDescription>Basic company settings</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label>Company Name</Label>
-            <p className="text-sm text-muted-foreground">Migrants Venture Corporation</p>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Company Information</CardTitle>
+          <CardDescription>Basic company settings</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Company Name</Label>
+              <p className="text-sm text-muted-foreground">Migrants Venture Corporation</p>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            Appearance
+          </CardTitle>
+          <CardDescription>Customize the look and feel of the application</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Theme</Label>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={theme === 'light' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTheme('light')}
+                className="flex items-center gap-2"
+              >
+                <Sun className="h-4 w-4" />
+                Light
+              </Button>
+              <Button
+                variant={theme === 'dark' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTheme('dark')}
+                className="flex items-center gap-2"
+              >
+                <Moon className="h-4 w-4" />
+                Dark
+              </Button>
+              <Button
+                variant={theme === 'system' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTheme('system')}
+                className="flex items-center gap-2"
+              >
+                <Monitor className="h-4 w-4" />
+                System
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Choose your preferred color theme or use your system settings
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -826,5 +886,76 @@ function UserRoleManagement() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function PermissionsManagement() {
+  const [selectedRole, setSelectedRole] = useState<AppRole>('branch_manager');
+  const { data: permissions, isLoading } = useRolePermissions();
+  const updatePermission = useUpdatePermission();
+
+  const getPermissionEnabled = (permissionKey: string, role: AppRole): boolean => {
+    const perm = permissions?.find(p => p.role === role && p.permission_key === permissionKey);
+    return perm?.enabled ?? false;
+  };
+
+  const handleToggle = (permissionKey: string, role: AppRole, enabled: boolean) => {
+    updatePermission.mutate({ role, permissionKey, enabled });
+  };
+
+  const roles: AppRole[] = ['branch_manager', 'employee'];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          Role Permissions
+        </CardTitle>
+        <CardDescription>
+          Configure which pages and features each role can access. HR Admin always has full access.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-48">Permission</TableHead>
+                  <TableHead className="w-40">Branch Manager</TableHead>
+                  <TableHead className="w-40">Employee</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {AVAILABLE_PERMISSIONS.map((perm) => (
+                  <TableRow key={perm.key}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{perm.label}</p>
+                        <p className="text-xs text-muted-foreground">{perm.description}</p>
+                      </div>
+                    </TableCell>
+                    {roles.map((role) => (
+                      <TableCell key={role}>
+                        <Switch
+                          checked={getPermissionEnabled(perm.key, role)}
+                          onCheckedChange={(checked) => handleToggle(perm.key, role, checked)}
+                          disabled={updatePermission.isPending}
+                        />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
