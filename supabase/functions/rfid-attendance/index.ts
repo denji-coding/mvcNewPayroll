@@ -128,6 +128,27 @@ serve(async (req) => {
     const today = now.toISOString().split('T')[0];
     const currentTime = now.toISOString();
 
+    // Check employee schedule for today
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const { data: scheduleData } = await supabase
+      .from('employee_schedules')
+      .select('*')
+      .eq('employee_id', employee.id)
+      .eq('day_of_week', dayOfWeek)
+      .single();
+
+    // If employee has a schedule defined and today is not a duty day
+    if (scheduleData && !scheduleData.is_duty_day) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'No duty today',
+          employee_name: `${employee.first_name} ${employee.last_name}`,
+          message: 'You are not scheduled to work today.'
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Check for existing attendance record today
     const { data: existingRecord, error: recordError } = await supabase
       .from('attendance')

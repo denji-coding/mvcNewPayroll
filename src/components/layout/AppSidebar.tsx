@@ -11,9 +11,13 @@ import {
   ChevronDown,
   Fingerprint,
   MonitorSmartphone,
+  CalendarClock,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/components/theme-provider';
 import {
   Sidebar,
   SidebarContent,
@@ -35,13 +39,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 const navigationItems: { title: string; url: string; icon: React.ComponentType<{ className?: string }>; roles: string[]; external?: boolean }[] = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['hr_admin', 'branch_manager', 'employee'] },
   { title: 'Employees', url: '/employees', icon: Users, roles: ['hr_admin', 'branch_manager'] },
   { title: 'Branches', url: '/branches', icon: Building2, roles: ['hr_admin'] },
+  { title: 'Time Schedule', url: '/time-schedule', icon: CalendarClock, roles: ['hr_admin'] },
   { title: 'My Attendance', url: '/my-attendance', icon: Fingerprint, roles: ['employee'] },
-  { title: 'Clock In/Out', url: '/clock-in-out', icon: Clock, roles: ['hr_admin', 'branch_manager'] },
   { title: 'Attendance Terminal', url: '/attendance-terminal', icon: MonitorSmartphone, roles: ['hr_admin'], external: true },
   { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager'] },
   { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'] },
@@ -54,6 +59,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const { role, profile, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const collapsed = state === 'collapsed';
 
   const filteredItems = navigationItems.filter(
@@ -65,6 +71,10 @@ export function AppSidebar() {
       return `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
     }
     return 'U';
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   return (
@@ -126,7 +136,24 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-2">
+      <SidebarFooter className="border-t border-sidebar-border p-2 space-y-2">
+        {/* Theme Toggle */}
+        <div className="flex justify-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="text-sidebar-foreground hover:bg-sidebar-accent"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors">
