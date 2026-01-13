@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Calculator, Plus, Eye, CheckCircle, Edit, Trash2, Banknote, Download } from 'lucide-react';
+import { SalaryCalculator } from '@/components/payroll/SalaryCalculator';
 import { usePayrollPeriods, usePayrollRecords, useCreatePayrollPeriod, useRunPayroll, useApprovePayroll, useDeletePayrollPeriod, useDeletePayrollRecord } from '@/hooks/usePayroll';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useSalaryComponents, useCreateSalaryComponent, useUpdateSalaryComponent, useDeleteSalaryComponent } from '@/hooks/useSalaryComponents';
@@ -89,6 +90,7 @@ export default function Payroll() {
             <TabsTrigger value="records">Payroll Records</TabsTrigger>
             <TabsTrigger value="components">Salary Components</TabsTrigger>
             <TabsTrigger value="loans">Loans</TabsTrigger>
+            {isHR && <TabsTrigger value="calculator">Salary Calculator</TabsTrigger>}
           </TabsList>
         </div>
 
@@ -192,6 +194,12 @@ export default function Payroll() {
         <TabsContent value="loans" className="mt-4">
           <LoansTab loans={loans} employees={employees} isLoading={loansLoading} isHR={isHR} formatCurrency={formatCurrency} />
         </TabsContent>
+
+        {isHR && (
+          <TabsContent value="calculator" className="mt-4">
+            <SalaryCalculator />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

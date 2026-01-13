@@ -1,8 +1,9 @@
-import { Bell } from 'lucide-react';
+import { Bell, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useTheme } from '@/components/theme-provider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ import { formatDistanceToNow } from 'date-fns';
 export function AppHeader() {
   const { user } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user?.id);
+  const { theme, setTheme } = useTheme();
 
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 sticky top-0 z-10">
@@ -26,6 +28,17 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Theme Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </Button>
+
+        {/* Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">

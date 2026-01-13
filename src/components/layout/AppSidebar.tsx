@@ -12,12 +12,9 @@ import {
   Fingerprint,
   MonitorSmartphone,
   CalendarClock,
-  Sun,
-  Moon,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/components/theme-provider';
 import {
   Sidebar,
   SidebarContent,
@@ -59,7 +56,6 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const { role, profile, signOut } = useAuth();
-  const { theme, setTheme } = useTheme();
   const collapsed = state === 'collapsed';
 
   const filteredItems = navigationItems.filter(
@@ -71,10 +67,6 @@ export function AppSidebar() {
       return `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
     }
     return 'U';
-  };
-
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   return (
@@ -136,23 +128,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-2 space-y-2">
-        {/* Theme Toggle */}
-        <div className="flex justify-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="text-sidebar-foreground hover:bg-sidebar-accent"
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {theme === 'dark' ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </Button>
-        </div>
+      <SidebarFooter className="border-t border-sidebar-border p-2">
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
