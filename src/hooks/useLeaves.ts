@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from './useAuth';
@@ -10,6 +11,30 @@ export type LeaveRequestInsert = TablesInsert<'leave_requests'>;
 export type LeaveCredit = Tables<'leave_credits'>;
 
 export function useLeaveRequests(status?: 'pending' | 'manager_approved' | 'hr_approved' | 'rejected' | 'cancelled') {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('leave-requests-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leave_requests',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+          queryClient.invalidateQueries({ queryKey: ['my-leave-requests'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['leave-requests', status],
     queryFn: async () => {

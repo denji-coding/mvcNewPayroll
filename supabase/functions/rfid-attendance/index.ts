@@ -128,6 +128,28 @@ serve(async (req) => {
     const today = now.toISOString().split('T')[0];
     const currentTime = now.toISOString();
 
+    // Check if employee has ANY schedule assigned
+    const { data: allSchedules, error: scheduleCountError } = await supabase
+      .from('employee_schedules')
+      .select('id')
+      .eq('employee_id', employee.id);
+    
+    if (scheduleCountError) {
+      console.error('Schedule count error:', scheduleCountError);
+    }
+
+    // If employee has no schedule at all, reject attendance
+    if (!allSchedules || allSchedules.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'No schedule assigned',
+          employee_name: `${employee.first_name} ${employee.last_name}`,
+          message: 'No time schedule has been assigned yet. Please contact HR.'
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Check employee schedule for today
     const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
     const { data: scheduleData } = await supabase
@@ -137,8 +159,20 @@ serve(async (req) => {
       .eq('day_of_week', dayOfWeek)
       .single();
 
-    // If employee has a schedule defined and today is not a duty day
-    if (scheduleData && !scheduleData.is_duty_day) {
+    // If no schedule for today (employee has schedule but not for this day)
+    if (!scheduleData) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'No duty today',
+          employee_name: `${employee.first_name} ${employee.last_name}`,
+          message: 'You are not scheduled to work today.'
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // If schedule exists but today is not a duty day
+    if (!scheduleData.is_duty_day) {
       return new Response(
         JSON.stringify({ 
           error: 'No duty today',
@@ -164,9 +198,9 @@ serve(async (req) => {
       // First scan of the day - Time In
       action = 'time_in';
       
-      // Calculate late minutes based on configured start time
-      const [startHour, startMin] = settings.work_start_time.split(':').map(Number);
-      const startTime = new Date(today + `T${settings.work_start_time}:00`);
+      // Use employee's schedule start time if available, otherwise use terminal settings
+      const startTimeStr = scheduleData.start_time || settings.work_start_time;
+      const startTime = new Date(today + `T${startTimeStr}`);
       const graceEndTime = new Date(startTime.getTime() + (settings.grace_period_minutes * 60 * 1000));
       
       let lateMinutes = 0;
@@ -201,8 +235,9 @@ serve(async (req) => {
       const timeIn = new Date(existingRecord.time_in);
       const hoursWorked = (now.getTime() - timeIn.getTime()) / (1000 * 60 * 60);
       
-      // Calculate undertime based on configured end time
-      const endTime = new Date(today + `T${settings.work_end_time}:00`);
+      // Use employee's schedule end time if available, otherwise use terminal settings
+      const endTimeStr = scheduleData.end_time || settings.work_end_time;
+      const endTime = new Date(today + `T${endTimeStr}`);
       let undertimeMinutes = 0;
       if (now < endTime) {
         undertimeMinutes = Math.floor((endTime.getTime() - now.getTime()) / (1000 * 60));

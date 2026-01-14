@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getSafeErrorMessage } from '@/lib/errorHandler';
@@ -9,6 +10,30 @@ export type AttendanceInsert = TablesInsert<'attendance'>;
 export type AttendanceUpdate = TablesUpdate<'attendance'>;
 
 export function useAttendanceByDate(date: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('attendance-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'attendance',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['attendance', date] });
+          queryClient.invalidateQueries({ queryKey: ['attendance-stats', date] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, date]);
+
   return useQuery({
     queryKey: ['attendance', date],
     queryFn: async () => {

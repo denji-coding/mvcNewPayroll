@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,12 +11,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { usePagination } from '@/hooks/usePagination';
 import { TablePagination } from '@/components/TablePagination';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Input } from '@/components/ui/input';
 
 export default function Attendance() {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const dateStr = format(selectedDate, 'yyyy-MM-dd');
   const { role } = useAuth();
-  const { data: attendance, isLoading } = useAttendanceByDate(date);
-  const { data: stats, isLoading: statsLoading } = useAttendanceStats(date);
+  const { data: attendance, isLoading } = useAttendanceByDate(dateStr);
+  const { data: stats, isLoading: statsLoading } = useAttendanceStats(dateStr);
   const updateAttendance = useUpdateAttendance();
 
   const [editRecord, setEditRecord] = useState<any>(null);
@@ -45,8 +47,8 @@ export default function Attendance() {
 
   const handleSaveEdit = () => {
     if (!editRecord) return;
-    const timeIn = editForm.time_in ? `${date}T${editForm.time_in}:00` : null;
-    const timeOut = editForm.time_out ? `${date}T${editForm.time_out}:00` : null;
+    const timeIn = editForm.time_in ? `${dateStr}T${editForm.time_in}:00` : null;
+    const timeOut = editForm.time_out ? `${dateStr}T${editForm.time_out}:00` : null;
     
     updateAttendance.mutate({
       id: editRecord.id,
@@ -77,7 +79,7 @@ export default function Attendance() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `attendance-${date}.csv`;
+    a.download = `attendance-${dateStr}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -97,7 +99,11 @@ export default function Attendance() {
       <div className="page-header">
         <h1 className="page-title">Attendance</h1>
         <div className="flex gap-2">
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-auto" />
+          <DatePicker
+            date={selectedDate}
+            onDateChange={(d) => d && setSelectedDate(d)}
+            className="w-[200px]"
+          />
           <Button variant="outline" onClick={exportCSV} disabled={!attendance?.length}>
             <Download className="mr-2 h-4 w-4" /> Export
           </Button>
@@ -134,7 +140,7 @@ export default function Attendance() {
       <Card>
         <CardHeader>
           <CardTitle>
-            Daily Attendance - {new Date(date).toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            Daily Attendance - {selectedDate.toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </CardTitle>
         </CardHeader>
         <CardContent>

@@ -11,8 +11,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { usePagination } from '@/hooks/usePagination';
 import { TablePagination } from '@/components/TablePagination';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Employees() {
+  const { role } = useAuth();
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -96,9 +98,11 @@ export default function Employees() {
     <div className="page-container">
       <div className="page-header">
         <h1 className="page-title">Employees</h1>
-        <Button asChild>
-          <Link to="/employees/new"><Plus className="mr-2 h-4 w-4" /> Add Employee</Link>
-        </Button>
+        {role === 'hr_admin' && (
+          <Button asChild>
+            <Link to="/employees/new"><Plus className="mr-2 h-4 w-4" /> Add Employee</Link>
+          </Button>
+        )}
       </div>
 
       <Card>
