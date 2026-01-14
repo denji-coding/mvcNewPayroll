@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getSafeErrorMessage } from '@/lib/errorHandler';
@@ -8,6 +9,29 @@ export type PayrollPeriod = Tables<'payroll_periods'>;
 export type PayrollRecord = Tables<'payroll_records'>;
 
 export function usePayrollPeriods() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('payroll-periods-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payroll_periods',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['payroll-periods'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['payroll-periods'],
     queryFn: async () => {
@@ -23,6 +47,31 @@ export function usePayrollPeriods() {
 }
 
 export function usePayrollRecords(periodId?: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!periodId) return;
+
+    const channel = supabase
+      .channel('payroll-records-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payroll_records',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['payroll-records', periodId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, periodId]);
+
   return useQuery({
     queryKey: ['payroll-records', periodId],
     queryFn: async () => {

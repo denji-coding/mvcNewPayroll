@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { FileText, Users, DollarSign, Building2, Download, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { DateInput } from '@/components/ui/date-picker';
 
 type ReportType = 'employee-masterlist' | 'attendance-summary' | 'leave-balance' | 'payroll-summary' | 'gov-contributions' | 'branch-performance';
 
@@ -216,8 +215,8 @@ export default function Reports() {
                     <DialogHeader><DialogTitle>Select Date Range</DialogTitle></DialogHeader>
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div><Label>Start Date</Label><Input type="date" value={dateRange.start} onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })} /></div>
-                        <div><Label>End Date</Label><Input type="date" value={dateRange.end} onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })} /></div>
+                        <div><Label>Start Date</Label><DateInput value={dateRange.start} onChange={(v) => setDateRange({ ...dateRange, start: v })} /></div>
+                        <div><Label>End Date</Label><DateInput value={dateRange.end} onChange={(v) => setDateRange({ ...dateRange, end: v })} /></div>
                       </div>
                       <Button className="w-full" onClick={() => generateReport(report.id)} disabled={generating === report.id}>
                         {generating === report.id ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : <><Download className="mr-2 h-4 w-4" /> Download Report</>}

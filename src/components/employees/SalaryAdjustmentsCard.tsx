@@ -8,13 +8,14 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { 
   useEmployeeSalaryAdjustments, 
   useCreateEmployeeSalaryAdjustment, 
   useDeleteEmployeeSalaryAdjustment 
 } from '@/hooks/useEmployeeSalaryAdjustments';
 import { useSalaryComponents } from '@/hooks/useSalaryComponents';
+import { DateInput } from '@/components/ui/date-picker';
 
 interface SalaryAdjustmentsCardProps {
   employeeId: string;
@@ -103,18 +104,16 @@ export function SalaryAdjustmentsCard({ employeeId }: SalaryAdjustmentsCardProps
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Effective From</Label>
-                  <Input 
-                    type="date" 
+                  <DateInput 
                     value={form.effective_from} 
-                    onChange={(e) => setForm({ ...form, effective_from: e.target.value })} 
+                    onChange={(v) => setForm({ ...form, effective_from: v })} 
                   />
                 </div>
                 <div>
                   <Label>Effective To</Label>
-                  <Input 
-                    type="date" 
+                  <DateInput 
                     value={form.effective_to} 
-                    onChange={(e) => setForm({ ...form, effective_to: e.target.value })} 
+                    onChange={(v) => setForm({ ...form, effective_to: v })} 
                   />
                 </div>
               </div>

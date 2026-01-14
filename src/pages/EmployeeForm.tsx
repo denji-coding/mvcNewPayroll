@@ -10,6 +10,8 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save } from 'lucide-react';
 import { SalaryAdjustmentsCard } from '@/components/employees/SalaryAdjustmentsCard';
+import { DateInput } from '@/components/ui/date-picker';
+import { PasswordInput } from '@/components/ui/password-input';
 
 export default function EmployeeForm() {
   const { id } = useParams();
@@ -121,7 +123,7 @@ export default function EmployeeForm() {
             <div><Label>Middle Name</Label><Input value={form.middle_name} onChange={(e) => updateField('middle_name', e.target.value)} /></div>
             <div><Label>Email *</Label><Input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} required /></div>
             <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => updateField('phone', e.target.value)} /></div>
-            <div><Label>Date of Birth</Label><Input type="date" value={form.date_of_birth} onChange={(e) => updateField('date_of_birth', e.target.value)} /></div>
+            <div><Label>Date of Birth</Label><DateInput value={form.date_of_birth} onChange={(v) => updateField('date_of_birth', v)} /></div>
             <div><Label>Gender</Label><Select value={form.gender} onValueChange={(v) => updateField('gender', v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select></div>
             <div><Label>Civil Status</Label><Select value={form.civil_status} onValueChange={(v) => updateField('civil_status', v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="single">Single</SelectItem><SelectItem value="married">Married</SelectItem><SelectItem value="widowed">Widowed</SelectItem></SelectContent></Select></div>
             <div className="md:col-span-3"><Label>Address</Label><Input value={form.address} onChange={(e) => updateField('address', e.target.value)} /></div>
@@ -134,7 +136,7 @@ export default function EmployeeForm() {
             <div><Label>Position *</Label><Input value={form.position} onChange={(e) => updateField('position', e.target.value)} required /></div>
             <div><Label>Department</Label><Input value={form.department} onChange={(e) => updateField('department', e.target.value)} /></div>
             <div><Label>Branch</Label><Select value={form.branch_id} onValueChange={(v) => updateField('branch_id', v)}><SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger><SelectContent>{branches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label>Date Hired *</Label><Input type="date" value={form.date_hired} onChange={(e) => updateField('date_hired', e.target.value)} required /></div>
+            <div><Label>Date Hired *</Label><DateInput value={form.date_hired} onChange={(v) => updateField('date_hired', v)} /></div>
             <div><Label>Basic Salary (₱)</Label><Input type="number" value={form.basic_salary} onChange={(e) => updateField('basic_salary', e.target.value)} /></div>
             <div><Label>RFID Card Number</Label><Input value={form.rfid_card_number} onChange={(e) => updateField('rfid_card_number', e.target.value)} /></div>
             
@@ -165,12 +167,10 @@ export default function EmployeeForm() {
               </div>
               <div>
                 <Label>Password *</Label>
-                <Input 
-                  type="password" 
+                <PasswordInput 
                   value={form.password} 
                   onChange={(e) => updateField('password', e.target.value)} 
                   placeholder="Min 6 characters"
-                  required 
                 />
               </div>
               <div className="flex items-end">
