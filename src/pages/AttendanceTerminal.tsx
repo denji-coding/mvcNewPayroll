@@ -299,9 +299,31 @@ export default function AttendanceTerminal() {
                         value={rfidInput}
                         onChange={(e) => setRfidInput(e.target.value)}
                         placeholder="Waiting for card scan..."
-                        className="text-center text-lg h-14 bg-muted/50"
+                        className="text-center text-lg h-14 bg-muted/50 caret-transparent cursor-default"
                         autoComplete="off"
                         disabled={isLoading}
+                        readOnly
+                        inputMode="none"
+                        onKeyDown={(e) => {
+                          // Allow scanner input (simulates keyboard) but prevent manual typing
+                          // Scanners send complete strings very quickly followed by Enter
+                          if (e.key === 'Enter' && rfidInput.trim()) {
+                            e.preventDefault();
+                            submitRfidAttendance(rfidInput);
+                          }
+                        }}
+                        onPaste={(e) => {
+                          // Allow paste from scanner
+                          const pastedText = e.clipboardData.getData('text');
+                          if (pastedText) {
+                            setRfidInput(pastedText);
+                          }
+                        }}
+                        // Scanner sends keystrokes - capture them
+                        onInput={(e) => {
+                          const target = e.target as HTMLInputElement;
+                          setRfidInput(target.value);
+                        }}
                       />
 
                       {isManualEntryAllowed && (

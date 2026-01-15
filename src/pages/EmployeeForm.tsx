@@ -12,6 +12,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { SalaryAdjustmentsCard } from '@/components/employees/SalaryAdjustmentsCard';
 import { DateInput } from '@/components/ui/date-picker';
 import { PasswordInput } from '@/components/ui/password-input';
+import { usePositions } from '@/hooks/usePositions';
 
 export default function EmployeeForm() {
   const { id } = useParams();
@@ -19,6 +20,7 @@ export default function EmployeeForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
+  const { data: positions } = usePositions();
   const [form, setForm] = useState({
     employee_id: '', first_name: '', last_name: '', middle_name: '', email: '', phone: '',
     date_of_birth: '', gender: '', civil_status: '', address: '', position: '', department: '',
@@ -133,7 +135,17 @@ export default function EmployeeForm() {
         <Card>
           <CardHeader><CardTitle>Employment Details</CardTitle></CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-3">
-            <div><Label>Position *</Label><Input value={form.position} onChange={(e) => updateField('position', e.target.value)} required /></div>
+            <div>
+              <Label>Position *</Label>
+              <Select value={form.position} onValueChange={(v) => updateField('position', v)}>
+                <SelectTrigger><SelectValue placeholder="Select position" /></SelectTrigger>
+                <SelectContent>
+                  {positions?.map((p) => (
+                    <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div><Label>Department</Label><Input value={form.department} onChange={(e) => updateField('department', e.target.value)} /></div>
             <div><Label>Branch</Label><Select value={form.branch_id} onValueChange={(v) => updateField('branch_id', v)}><SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger><SelectContent>{branches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Date Hired *</Label><DateInput value={form.date_hired} onChange={(v) => updateField('date_hired', v)} /></div>

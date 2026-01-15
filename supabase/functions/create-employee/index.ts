@@ -173,6 +173,25 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Send welcome email with credentials
+    try {
+      await supabaseAdmin.functions.invoke('send-notification-email', {
+        body: {
+          type: 'account_created',
+          to: employeeData.email,
+          name: `${employeeData.first_name} ${employeeData.last_name}`,
+          email: employeeData.email,
+          password: employeeData.password,
+          role: employeeData.role,
+          portalUrl: 'https://migrant-path-hr.lovable.app'
+        }
+      });
+      console.log("Welcome email sent to:", employeeData.email);
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError);
+      // Don't fail the entire operation if email fails
+    }
+
     return new Response(
       JSON.stringify({ success: true, employee, userId }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
