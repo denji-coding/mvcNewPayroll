@@ -9,9 +9,10 @@ import {
   FileText,
   Settings,
   ChevronDown,
-  Fingerprint,
+  IdCard,
   MonitorSmartphone,
   CalendarClock,
+  Briefcase,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
@@ -41,9 +42,10 @@ import { Button } from '@/components/ui/button';
 const navigationItems: { title: string; url: string; icon: React.ComponentType<{ className?: string }>; roles: string[]; external?: boolean }[] = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['hr_admin', 'branch_manager', 'employee'] },
   { title: 'Employees', url: '/employees', icon: Users, roles: ['hr_admin', 'branch_manager'] },
+  { title: 'Positions', url: '/positions', icon: Briefcase, roles: ['hr_admin'] },
   { title: 'Branches', url: '/branches', icon: Building2, roles: ['hr_admin'] },
   { title: 'Time Schedule', url: '/time-schedule', icon: CalendarClock, roles: ['hr_admin'] },
-  { title: 'My Attendance', url: '/my-attendance', icon: Fingerprint, roles: ['employee'] },
+  { title: 'My Attendance', url: '/my-attendance', icon: IdCard, roles: ['employee'] },
   { title: 'Attendance Terminal', url: '/attendance-terminal', icon: MonitorSmartphone, roles: ['hr_admin'], external: true },
   { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager'] },
   { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'] },

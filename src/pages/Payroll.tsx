@@ -37,6 +37,10 @@ export default function Payroll() {
   const [activeTab, setActiveTab] = useState('periods');
   const { data: records, isLoading: recordsLoading } = usePayrollRecords(selectedPeriod || undefined);
 
+  // Get the selected period's status to restrict view/download
+  const selectedPeriodData = periods?.find((p: any) => p.id === selectedPeriod);
+  const isPeriodProcessed = selectedPeriodData?.status !== 'draft';
+
   const [createOpen, setCreateOpen] = useState(false);
   const [periodForm, setPeriodForm] = useState({ period_start: '', period_end: '', pay_date: '' });
   const [viewPayslip, setViewPayslip] = useState<any>(null);
@@ -144,47 +148,62 @@ export default function Payroll() {
             <CardHeader><CardTitle>Payroll Records</CardTitle><CardDescription>{selectedPeriod ? 'Employee payslips' : 'Select a period first'}</CardDescription></CardHeader>
             <CardContent>
               {selectedPeriod ? (
-                <Table>
-                  <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Basic</TableHead><TableHead>Gross</TableHead><TableHead>Deductions</TableHead><TableHead>Net Pay</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {recordsLoading ? [1,2,3].map(i => <TableRow key={i}>{[1,2,3,4,5,6].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>) :
-                     records?.length ? records.map((r: any) => (
-                      <TableRow key={r.id}>
-                        <TableCell>{r.employees?.first_name} {r.employees?.last_name}</TableCell>
-                        <TableCell>{formatCurrency(r.basic_pay)}</TableCell>
-                        <TableCell>{formatCurrency(r.gross_pay)}</TableCell>
-                        <TableCell>{formatCurrency(r.total_deductions)}</TableCell>
-                        <TableCell className="font-bold">{formatCurrency(r.net_pay)}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline" onClick={() => setViewPayslip(r)}><Eye className="h-4 w-4" /></Button>
-                            {isHR && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button size="sm" variant="outline" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Payroll Record?</AlertDialogTitle>
-                                    <AlertDialogDescription>This will delete the payroll record for {r.employees?.first_name} {r.employees?.last_name}. This action cannot be undone.</AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => deletePayrollRecord.mutate(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )) : <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No records</TableCell></TableRow>}
-                  </TableBody>
-                </Table>
+                <>
+                  {!isPeriodProcessed && (
+                    <div className="bg-warning/10 text-warning p-4 rounded-lg mb-4 text-center">
+                      <p className="text-sm font-medium">Payroll is not yet processed. View and download will be available after processing.</p>
+                    </div>
+                  )}
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Basic</TableHead><TableHead>Gross</TableHead><TableHead>Deductions</TableHead><TableHead>Net Pay</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {recordsLoading ? [1,2,3].map(i => <TableRow key={i}>{[1,2,3,4,5,6].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>) :
+                       records?.length ? records.map((r: any) => (
+                        <TableRow key={r.id}>
+                          <TableCell>{r.employees?.first_name} {r.employees?.last_name}</TableCell>
+                          <TableCell>{formatCurrency(r.basic_pay)}</TableCell>
+                          <TableCell>{formatCurrency(r.gross_pay)}</TableCell>
+                          <TableCell>{formatCurrency(r.total_deductions)}</TableCell>
+                          <TableCell className="font-bold">{formatCurrency(r.net_pay)}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => setViewPayslip(r)}
+                                disabled={!isPeriodProcessed}
+                                title={!isPeriodProcessed ? 'Payroll must be processed first' : 'View payslip'}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              {isHR && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="outline" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Payroll Record?</AlertDialogTitle>
+                                      <AlertDialogDescription>This will delete the payroll record for {r.employees?.first_name} {r.employees?.last_name}. This action cannot be undone.</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => deletePayrollRecord.mutate(r.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )) : <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No records</TableCell></TableRow>}
+                    </TableBody>
+                  </Table>
+                </>
               ) : <p className="text-muted-foreground text-center py-8">Select a payroll period</p>}
             </CardContent>
           </Card>
-          {viewPayslip && <PayslipDialog record={viewPayslip} onClose={() => setViewPayslip(null)} formatCurrency={formatCurrency} />}
+          {viewPayslip && <PayslipDialog record={viewPayslip} onClose={() => setViewPayslip(null)} formatCurrency={formatCurrency} periodStatus={selectedPeriodData?.status} />}
         </TabsContent>
 
         <TabsContent value="components" className="mt-4">
@@ -205,7 +224,8 @@ export default function Payroll() {
   );
 }
 
-function PayslipDialog({ record: r, onClose, formatCurrency }: { record: any; onClose: () => void; formatCurrency: (n: number | null) => string }) {
+function PayslipDialog({ record: r, onClose, formatCurrency, periodStatus }: { record: any; onClose: () => void; formatCurrency: (n: number | null) => string; periodStatus?: string }) {
+  const canDownload = periodStatus === 'approved' || periodStatus === 'paid';
   const handleDownload = () => {
     const html = `
 <!DOCTYPE html>
@@ -281,7 +301,11 @@ function PayslipDialog({ record: r, onClose, formatCurrency }: { record: any; on
         <div className="bg-primary/10 p-4 rounded-lg text-center"><p className="text-sm text-muted-foreground">Net Pay</p><p className="text-2xl font-bold text-primary">{formatCurrency(r.net_pay)}</p></div>
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Close</Button>
-          <Button onClick={handleDownload} className="w-full sm:w-auto">Download Payslip</Button>
+          {canDownload && (
+            <Button onClick={handleDownload} className="w-full sm:w-auto">
+              <Download className="mr-2 h-4 w-4" /> Download Payslip
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

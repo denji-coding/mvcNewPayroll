@@ -24,6 +24,7 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import TimeSchedule from "./pages/TimeSchedule";
+import Positions from "./pages/Positions";
 
 // Layout
 import AppLayout from "./components/layout/AppLayout";
@@ -100,6 +101,7 @@ function AppRoutes() {
         <Route path="employees/new" element={<EmployeeForm />} />
         <Route path="employees/:id" element={<EmployeeForm />} />
         <Route path="branches" element={<Branches />} />
+        <Route path="positions" element={<Positions />} />
         <Route path="attendance" element={<Attendance />} />
         <Route path="clock-in-out" element={<ClockInOut />} />
         <Route path="my-attendance" element={<MyAttendance />} />

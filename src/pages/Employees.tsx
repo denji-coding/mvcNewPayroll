@@ -148,10 +148,12 @@ export default function Employees() {
                         <TableCell>{getStatusBadge(emp.employment_status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" asChild>
-                              <Link to={`/employees/${emp.id}`}><Edit className="h-4 w-4" /></Link>
-                            </Button>
-                            {viewMode === 'deleted' ? (
+                            {role === 'hr_admin' && (
+                              <Button variant="ghost" size="icon" asChild>
+                                <Link to={`/employees/${emp.id}`}><Edit className="h-4 w-4" /></Link>
+                              </Button>
+                            )}
+                            {role === 'hr_admin' && viewMode === 'deleted' && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="ghost" size="icon" className="text-success hover:text-success">
@@ -175,7 +177,8 @@ export default function Employees() {
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
-                            ) : (
+                            )}
+                            {role === 'hr_admin' && viewMode !== 'deleted' && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
