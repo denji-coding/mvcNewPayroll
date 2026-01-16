@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.create-employee]
 verify_jwt = false
+
+[functions.forgot-password]
+verify_jwt = false

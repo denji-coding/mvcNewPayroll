@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 type AppRole = 'hr_admin' | 'branch_manager' | 'employee';
 
@@ -13,6 +14,7 @@ interface AuthContextType {
     lastName: string;
     email: string;
     avatarUrl?: string;
+    mustChangePassword?: boolean;
   } | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -76,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('first_name, last_name, email, avatar_url')
+        .select('first_name, last_name, email, avatar_url, must_change_password')
         .eq('id', userId)
         .maybeSingle();
       
@@ -86,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           lastName: profileData.last_name,
           email: profileData.email,
           avatarUrl: profileData.avatar_url ?? undefined,
+          mustChangePassword: profileData.must_change_password ?? false,
         });
       }
     } catch (error) {
@@ -96,7 +99,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (!error && data.user) {
+      // Check if user must change password
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('must_change_password')
+        .eq('id', data.user.id)
+        .maybeSingle();
+      
+      if (profileData?.must_change_password) {
+        // Redirect to change password page
+        window.location.href = '/change-password';
+        return { error: null };
+      }
+      
+      // Normal login - redirect to dashboard
+      window.location.href = '/';
+    }
+    
     return { error: error ? new Error(error.message) : null };
   };
 

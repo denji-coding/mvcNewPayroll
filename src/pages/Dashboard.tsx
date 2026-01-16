@@ -1,14 +1,49 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useDashboardStats, useRecentActivity } from '@/hooks/useDashboard';
+import { useAttendanceTrend, useLeavesByStatus, useEmployeesByBranch, usePayrollSummary } from '@/hooks/useDashboardCharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users, Building2, Clock, DollarSign, CalendarDays, TrendingUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
+import EmployeeDashboard from './EmployeeDashboard';
 
 export default function Dashboard() {
+  const { profile, role } = useAuth();
+
+  // If employee role, show employee-specific dashboard
+  if (role === 'employee') {
+    return <EmployeeDashboard />;
+  }
+
+  return <AdminDashboard />;
+}
+
+function AdminDashboard() {
   const { profile } = useAuth();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: activity, isLoading: activityLoading } = useRecentActivity();
+  const { data: attendanceTrend } = useAttendanceTrend();
+  const { data: leavesByStatus } = useLeavesByStatus();
+  const { data: employeesByBranch } = useEmployeesByBranch();
+  const { data: payrollSummary } = usePayrollSummary();
 
   const statCards = [
     { title: 'Total Employees', value: stats?.employeeCount ?? 0, icon: Users, change: '' },
@@ -18,6 +53,15 @@ export default function Dashboard() {
     { title: 'Payroll This Month', value: stats?.payrollTotal ? `₱${(stats.payrollTotal / 1000000).toFixed(1)}M` : '₱0', icon: DollarSign, change: '' },
     { title: 'Avg. Attendance', value: stats?.attendanceRate ? `${stats.attendanceRate}%` : '-', icon: TrendingUp, change: '' },
   ];
+
+  const chartConfig = {
+    present: { label: 'Present', color: 'hsl(var(--chart-1))' },
+    absent: { label: 'Absent', color: 'hsl(var(--chart-2))' },
+    employees: { label: 'Employees', color: 'hsl(var(--chart-3))' },
+    total: { label: 'Total', color: 'hsl(var(--chart-4))' },
+  };
+
+  const pieColors = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
 
   return (
     <div className="page-container">
@@ -55,10 +99,137 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Charts Row */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Attendance Trend Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Attendance Trend (7 Days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {attendanceTrend && attendanceTrend.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                <AreaChart data={attendanceTrend}>
+                  <XAxis dataKey="day" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Area
+                    type="monotone"
+                    dataKey="present"
+                    stackId="1"
+                    stroke="hsl(var(--chart-1))"
+                    fill="hsl(var(--chart-1))"
+                    fillOpacity={0.6}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="absent"
+                    stackId="1"
+                    stroke="hsl(var(--chart-2))"
+                    fill="hsl(var(--chart-2))"
+                    fillOpacity={0.6}
+                  />
+                </AreaChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                No attendance data available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Leave Requests by Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Leave Requests by Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {leavesByStatus && leavesByStatus.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                <PieChart>
+                  <Pie
+                    data={leavesByStatus}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label={({ name, value }) => `${name}: ${value}`}
+                  >
+                    {leavesByStatus.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                No leave requests data
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Second Charts Row */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Employees by Branch */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Employees by Branch</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {employeesByBranch && employeesByBranch.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                <BarChart data={employeesByBranch} layout="vertical">
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="employees" fill="hsl(var(--chart-3))" radius={4} />
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                No branch data available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Payroll Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Payroll Summary (Last 4 Periods)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {payrollSummary && payrollSummary.length > 0 ? (
+              <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                <BarChart data={payrollSummary}>
+                  <XAxis dataKey="period" />
+                  <YAxis tickFormatter={(value) => `₱${value}K`} />
+                  <ChartTooltip
+                    content={<ChartTooltipContent />}
+                    formatter={(value: number) => [`₱${value.toFixed(0)}K`, 'Total']}
+                  />
+                  <Bar dataKey="total" fill="hsl(var(--chart-4))" radius={4} />
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                No payroll data available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Activity Section */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Recent Leave Requests</CardTitle>
           </CardHeader>
           <CardContent>
             {activityLoading ? (
@@ -70,7 +241,9 @@ export default function Dashboard() {
                 {activity.leaveRequests.map((leave: any) => (
                   <div key={leave.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div>
-                      <p className="text-sm font-medium">Leave Request</p>
+                      <p className="text-sm font-medium">
+                        {leave.employees?.first_name} {leave.employees?.last_name}
+                      </p>
                       <p className="text-xs text-muted-foreground capitalize">
                         {leave.leave_type} leave - {leave.status.replace('_', ' ')}
                       </p>
@@ -82,7 +255,7 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">No recent activity</p>
+              <p className="text-muted-foreground text-sm">No recent leave requests</p>
             )}
           </CardContent>
         </Card>

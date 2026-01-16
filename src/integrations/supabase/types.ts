@@ -603,6 +603,33 @@ export type Database = {
         }
         Relationships: []
       }
+      password_reset_tokens: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          is_used: boolean | null
+          temp_password_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          is_used?: boolean | null
+          temp_password_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_used?: boolean | null
+          temp_password_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payroll_periods: {
         Row: {
           approved_at: string | null
@@ -768,6 +795,7 @@ export type Database = {
           id: string
           last_name: string
           middle_name: string | null
+          must_change_password: boolean | null
           phone: string | null
           updated_at: string | null
         }
@@ -779,6 +807,7 @@ export type Database = {
           id: string
           last_name: string
           middle_name?: string | null
+          must_change_password?: boolean | null
           phone?: string | null
           updated_at?: string | null
         }
@@ -790,6 +819,7 @@ export type Database = {
           id?: string
           last_name?: string
           middle_name?: string | null
+          must_change_password?: boolean | null
           phone?: string | null
           updated_at?: string | null
         }

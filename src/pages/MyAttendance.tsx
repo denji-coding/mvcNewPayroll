@@ -83,14 +83,14 @@ export default function MyAttendance() {
 
       {/* Current Time Display */}
       <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-        <CardContent className="py-8 text-center">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <Clock className="h-8 w-8 text-primary" />
-            <span className="text-4xl font-bold tabular-nums">
+        <CardContent className="py-6 md:py-8 text-center">
+          <div className="flex items-center justify-center gap-2 md:gap-3 mb-2">
+            <Clock className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+            <span className="text-2xl md:text-4xl font-bold tabular-nums">
               {format(currentTime, 'hh:mm:ss a')}
             </span>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-sm md:text-base text-muted-foreground">
             {format(currentTime, 'EEEE, MMMM d, yyyy')}
           </p>
         </CardContent>
@@ -106,22 +106,22 @@ export default function MyAttendance() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
-              <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">Status</p>
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+              <div className="text-center p-3 md:p-4 bg-muted/50 rounded-lg">
+                <p className="text-xs md:text-sm text-muted-foreground">Status</p>
                 <div className="mt-1">{getStatusBadge(attendance.status)}</div>
               </div>
-              <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">Time In</p>
-                <p className="font-semibold">{formatTime(attendance.time_in)}</p>
+              <div className="text-center p-3 md:p-4 bg-muted/50 rounded-lg">
+                <p className="text-xs md:text-sm text-muted-foreground">Time In</p>
+                <p className="font-semibold text-sm md:text-base">{formatTime(attendance.time_in)}</p>
               </div>
-              <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">Time Out</p>
-                <p className="font-semibold">{formatTime(attendance.time_out)}</p>
+              <div className="text-center p-3 md:p-4 bg-muted/50 rounded-lg">
+                <p className="text-xs md:text-sm text-muted-foreground">Time Out</p>
+                <p className="font-semibold text-sm md:text-base">{formatTime(attendance.time_out)}</p>
               </div>
-              <div className="text-center p-4 bg-muted/50 rounded-lg">
-                <p className="text-sm text-muted-foreground">Hours Worked</p>
-                <p className="font-semibold">{attendance.hours_worked || '-'}</p>
+              <div className="text-center p-3 md:p-4 bg-muted/50 rounded-lg">
+                <p className="text-xs md:text-sm text-muted-foreground">Hours</p>
+                <p className="font-semibold text-sm md:text-base">{attendance.hours_worked || '-'}</p>
               </div>
             </div>
           </CardContent>
@@ -149,7 +149,8 @@ export default function MyAttendance() {
           <CardDescription>Your last 10 attendance records</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -163,7 +164,7 @@ export default function MyAttendance() {
               <TableBody>
                 {recentAttendance?.slice(0, 10).map((record) => (
                   <TableRow key={record.id}>
-                    <TableCell>{format(new Date(record.date), 'MMM d, yyyy')}</TableCell>
+                    <TableCell className="whitespace-nowrap">{format(new Date(record.date), 'MMM d, yyyy')}</TableCell>
                     <TableCell>{formatTime(record.time_in)}</TableCell>
                     <TableCell>{formatTime(record.time_out)}</TableCell>
                     <TableCell>{record.hours_worked || '-'}</TableCell>
@@ -179,6 +180,37 @@ export default function MyAttendance() {
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {recentAttendance?.slice(0, 10).map((record) => (
+              <div key={record.id} className="p-4 rounded-lg border bg-card">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-medium">{format(new Date(record.date), 'MMM d, yyyy')}</span>
+                  {getStatusBadge(record.status)}
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Time In</p>
+                    <p className="font-medium">{formatTime(record.time_in)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Time Out</p>
+                    <p className="font-medium">{formatTime(record.time_out)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Hours</p>
+                    <p className="font-medium">{record.hours_worked || '-'}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {(!recentAttendance || recentAttendance.length === 0) && (
+              <div className="text-center text-muted-foreground py-8">
+                No attendance records found
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

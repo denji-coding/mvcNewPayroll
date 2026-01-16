@@ -25,6 +25,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import TimeSchedule from "./pages/TimeSchedule";
 import Positions from "./pages/Positions";
+import ChangePassword from "./pages/ChangePassword";
 
 // Layout
 import AppLayout from "./components/layout/AppLayout";
@@ -78,6 +79,7 @@ function AppRoutes() {
     <Routes>
       {/* Public attendance terminal - no auth required */}
       <Route path="/attendance-terminal" element={<AttendanceTerminal />} />
+      <Route path="/change-password" element={<ChangePassword />} />
       <Route
         path="/auth"
         element={
