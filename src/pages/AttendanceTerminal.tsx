@@ -77,7 +77,19 @@ export default function AttendanceTerminal() {
     setMode(mode === 'rfid' ? 'manual' : 'rfid');
   };
 
-  // Show loading while settings are being fetched
+  // Format action label for display
+  const getActionLabel = (action: string) => {
+    const labels: Record<string, string> = {
+      morning_in: 'MORNING IN',
+      morning_out: 'MORNING OUT',
+      afternoon_in: 'AFTERNOON IN',
+      afternoon_out: 'AFTERNOON OUT',
+      time_in: 'TIME IN',
+      time_out: 'TIME OUT',
+    };
+    return labels[action] || action?.toUpperCase().replace('_', ' ');
+  };
+
   if (settingsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary via-primary/95 to-primary/80 flex items-center justify-center">
@@ -89,11 +101,9 @@ export default function AttendanceTerminal() {
     );
   }
 
-  // Show disabled state if terminal is disabled
   if (!isTerminalEnabled) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-muted via-muted/95 to-muted/80 flex flex-col">
-        {/* Header */}
         <header className="bg-background/10 backdrop-blur-sm border-b border-background/20 py-4 px-6">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -115,7 +125,6 @@ export default function AttendanceTerminal() {
           </div>
         </header>
 
-        {/* Main Content - Disabled State */}
         <main className="flex-1 flex items-center justify-center p-6">
           <div className="w-full max-w-lg">
             <Card className="bg-background shadow-2xl border-0">
@@ -141,7 +150,6 @@ export default function AttendanceTerminal() {
           </div>
         </main>
 
-        {/* Footer */}
         <footer className="bg-background/10 backdrop-blur-sm border-t border-background/20 py-3 px-6">
           <p className="text-center text-sm text-muted-foreground">
             © {new Date().getFullYear()} MVC Corporation. All rights reserved.
@@ -153,7 +161,6 @@ export default function AttendanceTerminal() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary via-primary/95 to-primary/80 flex flex-col">
-      {/* Header */}
       <header className="bg-background/10 backdrop-blur-sm border-b border-background/20 py-4 px-6">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -175,7 +182,6 @@ export default function AttendanceTerminal() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-lg">
           {/* Digital Clock */}
@@ -192,7 +198,6 @@ export default function AttendanceTerminal() {
           {/* Attendance Card */}
           <Card className="bg-background shadow-2xl border-0">
             <CardContent className="p-8">
-              {/* Result Display */}
               {result ? (
                 <div className="text-center py-8">
                   <div
@@ -211,7 +216,7 @@ export default function AttendanceTerminal() {
                   {result.success ? (
                     <>
                       <h2 className="text-2xl font-bold text-foreground mb-2">
-                        {result.action === 'time_in' ? 'TIME IN' : 'TIME OUT'} RECORDED
+                        {getActionLabel(result.action || '')} RECORDED
                       </h2>
                       <p className="text-xl text-muted-foreground mb-4">{result.employee_name}</p>
                       <p className="text-lg text-muted-foreground">{result.employee_id}</p>
@@ -226,7 +231,7 @@ export default function AttendanceTerminal() {
                           Late by {result.late_minutes} minutes
                         </div>
                       )}
-                      {result.status === 'present' && result.action === 'time_in' && (
+                      {result.status === 'present' && result.action === 'morning_in' && (
                         <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-success/10 text-success rounded-full text-sm">
                           <CheckCircle2 className="w-4 h-4" />
                           On Time
@@ -247,7 +252,6 @@ export default function AttendanceTerminal() {
                 </div>
               ) : (
                 <>
-                  {/* Mode Toggle - only show if manual entry is allowed */}
                   {isManualEntryAllowed && (
                     <div className="flex justify-center mb-6">
                       <div className="inline-flex rounded-lg bg-muted p-1">
@@ -279,6 +283,11 @@ export default function AttendanceTerminal() {
                     </div>
                   )}
 
+                  {/* Info about 4-time schedule */}
+                  <div className="text-center mb-6 text-sm text-muted-foreground">
+                    <p>Scan sequence: AM In → AM Out → PM In → PM Out</p>
+                  </div>
+
                   {mode === 'rfid' ? (
                     <form onSubmit={handleRfidSubmit} className="space-y-6">
                       <div className="text-center">
@@ -305,21 +314,17 @@ export default function AttendanceTerminal() {
                         readOnly
                         inputMode="none"
                         onKeyDown={(e) => {
-                          // Allow scanner input (simulates keyboard) but prevent manual typing
-                          // Scanners send complete strings very quickly followed by Enter
                           if (e.key === 'Enter' && rfidInput.trim()) {
                             e.preventDefault();
                             submitRfidAttendance(rfidInput);
                           }
                         }}
                         onPaste={(e) => {
-                          // Allow paste from scanner
                           const pastedText = e.clipboardData.getData('text');
                           if (pastedText) {
                             setRfidInput(pastedText);
                           }
                         }}
-                        // Scanner sends keystrokes - capture them
                         onInput={(e) => {
                           const target = e.target as HTMLInputElement;
                           setRfidInput(target.value);
@@ -395,7 +400,6 @@ export default function AttendanceTerminal() {
             </CardContent>
           </Card>
 
-          {/* Loading Overlay */}
           {isLoading && !result && (
             <div className="fixed inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-50">
               <div className="bg-background p-8 rounded-xl shadow-2xl text-center">
@@ -407,7 +411,6 @@ export default function AttendanceTerminal() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="bg-background/10 backdrop-blur-sm border-t border-background/20 py-3 px-6">
         <p className="text-center text-sm text-primary-foreground/60">
           © {new Date().getFullYear()} MVC Corporation. All rights reserved.

@@ -60,12 +60,16 @@ export type Database = {
       }
       attendance: {
         Row: {
+          afternoon_in: string | null
+          afternoon_out: string | null
           created_at: string | null
           date: string
           employee_id: string
           hours_worked: number | null
           id: string
           late_minutes: number | null
+          morning_in: string | null
+          morning_out: string | null
           overtime_hours: number | null
           remarks: string | null
           rfid_time_in: string | null
@@ -77,12 +81,16 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          afternoon_in?: string | null
+          afternoon_out?: string | null
           created_at?: string | null
           date: string
           employee_id: string
           hours_worked?: number | null
           id?: string
           late_minutes?: number | null
+          morning_in?: string | null
+          morning_out?: string | null
           overtime_hours?: number | null
           remarks?: string | null
           rfid_time_in?: string | null
@@ -94,12 +102,16 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          afternoon_in?: string | null
+          afternoon_out?: string | null
           created_at?: string | null
           date?: string
           employee_id?: string
           hours_worked?: number | null
           id?: string
           late_minutes?: number | null
+          morning_in?: string | null
+          morning_out?: string | null
           overtime_hours?: number | null
           remarks?: string | null
           rfid_time_in?: string | null
@@ -232,32 +244,44 @@ export type Database = {
       }
       employee_schedules: {
         Row: {
+          afternoon_end: string | null
+          afternoon_start: string | null
           created_at: string | null
           day_of_week: number
           employee_id: string
           end_time: string | null
           id: string
           is_duty_day: boolean | null
+          morning_end: string | null
+          morning_start: string | null
           start_time: string | null
           updated_at: string | null
         }
         Insert: {
+          afternoon_end?: string | null
+          afternoon_start?: string | null
           created_at?: string | null
           day_of_week: number
           employee_id: string
           end_time?: string | null
           id?: string
           is_duty_day?: boolean | null
+          morning_end?: string | null
+          morning_start?: string | null
           start_time?: string | null
           updated_at?: string | null
         }
         Update: {
+          afternoon_end?: string | null
+          afternoon_start?: string | null
           created_at?: string | null
           day_of_week?: number
           employee_id?: string
           end_time?: string | null
           id?: string
           is_duty_day?: boolean | null
+          morning_end?: string | null
+          morning_start?: string | null
           start_time?: string | null
           updated_at?: string | null
         }

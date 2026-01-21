@@ -108,10 +108,20 @@ function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {attendanceTrend && attendanceTrend.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <AreaChart data={attendanceTrend}>
-                  <XAxis dataKey="day" />
-                  <YAxis />
+              <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
+                <AreaChart data={attendanceTrend} margin={{ left: -20, right: 10, top: 5, bottom: 5 }}>
+                  <XAxis 
+                    dataKey="day" 
+                    tick={{ fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={30}
+                  />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Area
                     type="monotone"
@@ -132,7 +142,7 @@ function AdminDashboard() {
                 </AreaChart>
               </ChartContainer>
             ) : (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
                 No attendance data available
               </div>
             )}
@@ -146,26 +156,34 @@ function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {leavesByStatus && leavesByStatus.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <PieChart>
+              <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
+                <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                   <Pie
                     data={leavesByStatus}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={80}
-                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={60}
+                    innerRadius={25}
+                    label={({ name, value }) => `${value}`}
+                    labelLine={false}
                   >
                     {leavesByStatus.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
                     ))}
                   </Pie>
                   <ChartTooltip content={<ChartTooltipContent />} />
+                  <Legend 
+                    layout="horizontal" 
+                    verticalAlign="bottom" 
+                    align="center"
+                    wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }}
+                  />
                 </PieChart>
               </ChartContainer>
             ) : (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
                 No leave requests data
               </div>
             )}
@@ -182,16 +200,23 @@ function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {employeesByBranch && employeesByBranch.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <BarChart data={employeesByBranch} layout="vertical">
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+              <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
+                <BarChart data={employeesByBranch} layout="vertical" margin={{ left: 0, right: 10, top: 5, bottom: 5 }}>
+                  <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    width={60} 
+                    tick={{ fontSize: 9 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="employees" fill="hsl(var(--chart-3))" radius={4} />
                 </BarChart>
               </ChartContainer>
             ) : (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
                 No branch data available
               </div>
             )}
@@ -205,10 +230,21 @@ function AdminDashboard() {
           </CardHeader>
           <CardContent>
             {payrollSummary && payrollSummary.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-[250px] w-full">
-                <BarChart data={payrollSummary}>
-                  <XAxis dataKey="period" />
-                  <YAxis tickFormatter={(value) => `₱${value}K`} />
+              <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
+                <BarChart data={payrollSummary} margin={{ left: -10, right: 10, top: 5, bottom: 5 }}>
+                  <XAxis 
+                    dataKey="period" 
+                    tick={{ fontSize: 9 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    tickFormatter={(value) => `₱${value}K`}
+                    tick={{ fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={45}
+                  />
                   <ChartTooltip
                     content={<ChartTooltipContent />}
                     formatter={(value: number) => [`₱${value.toFixed(0)}K`, 'Total']}
@@ -217,7 +253,7 @@ function AdminDashboard() {
                 </BarChart>
               </ChartContainer>
             ) : (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+              <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
                 No payroll data available
               </div>
             )}

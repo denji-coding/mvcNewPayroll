@@ -9,18 +9,26 @@ export interface EmployeeSchedule {
   is_duty_day: boolean;
   start_time: string;
   end_time: string;
+  morning_start: string;
+  morning_end: string;
+  afternoon_start: string;
+  afternoon_end: string;
   created_at: string;
   updated_at: string;
 }
 
+export interface DaySchedule {
+  day_of_week: number;
+  is_duty_day: boolean;
+  morning_start: string;
+  morning_end: string;
+  afternoon_start: string;
+  afternoon_end: string;
+}
+
 export interface ScheduleFormData {
   employee_id: string;
-  schedules: {
-    day_of_week: number;
-    is_duty_day: boolean;
-    start_time: string;
-    end_time: string;
-  }[];
+  schedules: DaySchedule[];
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -76,15 +84,21 @@ export function useSaveEmployeeSchedule() {
         .delete()
         .eq('employee_id', employee_id);
 
-      // Insert new schedules
+      // Insert new schedules with 4-time format
       const { error } = await supabase
         .from('employee_schedules')
         .insert(schedules.map(s => ({
           employee_id,
           day_of_week: s.day_of_week,
           is_duty_day: s.is_duty_day,
-          start_time: s.start_time,
-          end_time: s.end_time,
+          // Keep old columns for backwards compatibility
+          start_time: s.morning_start,
+          end_time: s.afternoon_end,
+          // New 4-time columns
+          morning_start: s.morning_start,
+          morning_end: s.morning_end,
+          afternoon_start: s.afternoon_start,
+          afternoon_end: s.afternoon_end,
         })));
 
       if (error) throw error;

@@ -35,13 +35,13 @@ export default function MyAttendance() {
   const getStatusBadge = (status: string | null) => {
     switch (status) {
       case 'present':
-        return <Badge className="bg-green-500/10 text-green-600">Present</Badge>;
+        return <Badge className="bg-success/10 text-success border-success/20">Present</Badge>;
       case 'late':
-        return <Badge className="bg-yellow-500/10 text-yellow-600">Late</Badge>;
+        return <Badge className="bg-warning/10 text-warning border-warning/20">Late</Badge>;
       case 'absent':
-        return <Badge className="bg-red-500/10 text-red-600">Absent</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive border-destructive/20">Absent</Badge>;
       case 'on_leave':
-        return <Badge className="bg-blue-500/10 text-blue-600">On Leave</Badge>;
+        return <Badge className="bg-info/10 text-info border-info/20">On Leave</Badge>;
       default:
         return <Badge variant="secondary">{status || 'Unknown'}</Badge>;
     }
@@ -49,7 +49,7 @@ export default function MyAttendance() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="page-container">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-64 w-full" />
       </div>
@@ -58,7 +58,7 @@ export default function MyAttendance() {
 
   if (!employeeId) {
     return (
-      <div className="space-y-6">
+      <div className="page-container">
         <h1 className="text-2xl font-bold">My Attendance</h1>
         <Card>
           <CardContent className="py-12 text-center">
@@ -78,7 +78,7 @@ export default function MyAttendance() {
   const attendance = data?.attendance;
 
   return (
-    <div className="space-y-6">
+    <div className="page-container">
       <h1 className="text-2xl font-bold">My Attendance</h1>
 
       {/* Current Time Display */}
@@ -96,7 +96,7 @@ export default function MyAttendance() {
         </CardContent>
       </Card>
 
-      {/* Today's Summary */}
+      {/* Today's Summary - 4 Time Format */}
       {attendance ? (
         <Card>
           <CardHeader>
@@ -106,24 +106,34 @@ export default function MyAttendance() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
               <div className="text-center p-3 md:p-4 bg-muted/50 rounded-lg">
                 <p className="text-xs md:text-sm text-muted-foreground">Status</p>
                 <div className="mt-1">{getStatusBadge(attendance.status)}</div>
               </div>
               <div className="text-center p-3 md:p-4 bg-muted/50 rounded-lg">
-                <p className="text-xs md:text-sm text-muted-foreground">Time In</p>
-                <p className="font-semibold text-sm md:text-base">{formatTime(attendance.time_in)}</p>
+                <p className="text-xs md:text-sm text-muted-foreground">AM In</p>
+                <p className="font-semibold text-sm md:text-base">{formatTime((attendance as any).morning_in || attendance.time_in)}</p>
               </div>
               <div className="text-center p-3 md:p-4 bg-muted/50 rounded-lg">
-                <p className="text-xs md:text-sm text-muted-foreground">Time Out</p>
-                <p className="font-semibold text-sm md:text-base">{formatTime(attendance.time_out)}</p>
+                <p className="text-xs md:text-sm text-muted-foreground">AM Out</p>
+                <p className="font-semibold text-sm md:text-base">{formatTime((attendance as any).morning_out)}</p>
               </div>
               <div className="text-center p-3 md:p-4 bg-muted/50 rounded-lg">
-                <p className="text-xs md:text-sm text-muted-foreground">Hours</p>
-                <p className="font-semibold text-sm md:text-base">{attendance.hours_worked || '-'}</p>
+                <p className="text-xs md:text-sm text-muted-foreground">PM In</p>
+                <p className="font-semibold text-sm md:text-base">{formatTime((attendance as any).afternoon_in)}</p>
+              </div>
+              <div className="text-center p-3 md:p-4 bg-muted/50 rounded-lg col-span-2 md:col-span-1">
+                <p className="text-xs md:text-sm text-muted-foreground">PM Out</p>
+                <p className="font-semibold text-sm md:text-base">{formatTime((attendance as any).afternoon_out || attendance.time_out)}</p>
               </div>
             </div>
+            {attendance.hours_worked && (
+              <div className="mt-4 text-center p-3 bg-primary/5 rounded-lg">
+                <p className="text-sm text-muted-foreground">Total Hours Worked</p>
+                <p className="text-xl font-bold text-primary">{attendance.hours_worked} hours</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -142,7 +152,7 @@ export default function MyAttendance() {
         </Card>
       )}
 
-      {/* Recent Attendance History */}
+      {/* Recent Attendance History - 4 Time Format */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Attendance</CardTitle>
@@ -155,25 +165,29 @@ export default function MyAttendance() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Time In</TableHead>
-                  <TableHead>Time Out</TableHead>
+                  <TableHead>AM In</TableHead>
+                  <TableHead>AM Out</TableHead>
+                  <TableHead>PM In</TableHead>
+                  <TableHead>PM Out</TableHead>
                   <TableHead>Hours</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentAttendance?.slice(0, 10).map((record) => (
+                {recentAttendance?.slice(0, 10).map((record: any) => (
                   <TableRow key={record.id}>
                     <TableCell className="whitespace-nowrap">{format(new Date(record.date), 'MMM d, yyyy')}</TableCell>
-                    <TableCell>{formatTime(record.time_in)}</TableCell>
-                    <TableCell>{formatTime(record.time_out)}</TableCell>
+                    <TableCell>{formatTime(record.morning_in || record.time_in)}</TableCell>
+                    <TableCell>{formatTime(record.morning_out)}</TableCell>
+                    <TableCell>{formatTime(record.afternoon_in)}</TableCell>
+                    <TableCell>{formatTime(record.afternoon_out || record.time_out)}</TableCell>
                     <TableCell>{record.hours_worked || '-'}</TableCell>
                     <TableCell>{getStatusBadge(record.status)}</TableCell>
                   </TableRow>
                 ))}
                 {(!recentAttendance || recentAttendance.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       No attendance records found
                     </TableCell>
                   </TableRow>
@@ -184,26 +198,36 @@ export default function MyAttendance() {
 
           {/* Mobile Card View */}
           <div className="md:hidden space-y-3">
-            {recentAttendance?.slice(0, 10).map((record) => (
+            {recentAttendance?.slice(0, 10).map((record: any) => (
               <div key={record.id} className="p-4 rounded-lg border bg-card">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-medium">{format(new Date(record.date), 'MMM d, yyyy')}</span>
                   {getStatusBadge(record.status)}
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <p className="text-xs text-muted-foreground">Time In</p>
-                    <p className="font-medium">{formatTime(record.time_in)}</p>
+                    <p className="text-xs text-muted-foreground">AM In</p>
+                    <p className="font-medium">{formatTime(record.morning_in || record.time_in)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Time Out</p>
-                    <p className="font-medium">{formatTime(record.time_out)}</p>
+                    <p className="text-xs text-muted-foreground">AM Out</p>
+                    <p className="font-medium">{formatTime(record.morning_out)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Hours</p>
-                    <p className="font-medium">{record.hours_worked || '-'}</p>
+                    <p className="text-xs text-muted-foreground">PM In</p>
+                    <p className="font-medium">{formatTime(record.afternoon_in)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">PM Out</p>
+                    <p className="font-medium">{formatTime(record.afternoon_out || record.time_out)}</p>
                   </div>
                 </div>
+                {record.hours_worked && (
+                  <div className="mt-2 pt-2 border-t text-sm">
+                    <span className="text-muted-foreground">Total: </span>
+                    <span className="font-medium">{record.hours_worked} hours</span>
+                  </div>
+                )}
               </div>
             ))}
             {(!recentAttendance || recentAttendance.length === 0) && (

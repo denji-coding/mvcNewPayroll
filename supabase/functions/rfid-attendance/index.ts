@@ -31,12 +31,10 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify terminal secret for security (optional - only validate if both secret is configured AND header is provided)
+    // Verify terminal secret for security
     const terminalSecret = Deno.env.get('RFID_TERMINAL_SECRET');
     const providedSecret = req.headers.get('x-terminal-secret');
     
-    // Only validate if a secret is configured, not empty, AND a header was actually provided
-    // If no header is sent, allow the request (open mode for development/testing)
     if (terminalSecret && terminalSecret.trim() !== '' && providedSecret && providedSecret !== terminalSecret) {
       console.error('Invalid terminal secret provided');
       return new Response(
@@ -45,7 +43,7 @@ serve(async (req) => {
       );
     }
 
-    // Fetch terminal settings first to check if terminal is enabled
+    // Fetch terminal settings
     const { data: settingsData } = await supabase
       .from('settings')
       .select('value')
@@ -60,7 +58,6 @@ serve(async (req) => {
       allow_manual_entry: true
     };
 
-    // Check if terminal is enabled
     if (settings.terminal_enabled === false) {
       return new Response(
         JSON.stringify({ error: 'Attendance terminal is currently disabled' }),
@@ -70,7 +67,6 @@ serve(async (req) => {
 
     const { rfid_card_number, employee_id, timestamp }: AttendanceRequest = await req.json();
 
-    // Check if manual entry is allowed when using employee_id
     if (employee_id && !rfid_card_number && settings.allow_manual_entry === false) {
       return new Response(
         JSON.stringify({ error: 'Manual entry is disabled. Please use your RFID card.' }),
@@ -78,7 +74,6 @@ serve(async (req) => {
       );
     }
 
-    // Validate input
     if (!rfid_card_number && !employee_id) {
       return new Response(
         JSON.stringify({ error: 'RFID card number or Employee ID is required' }),
@@ -86,22 +81,14 @@ serve(async (req) => {
       );
     }
 
-    // Validate input length to prevent abuse
-    if (rfid_card_number && rfid_card_number.length > 50) {
+    if ((rfid_card_number && rfid_card_number.length > 50) || (employee_id && employee_id.length > 50)) {
       return new Response(
-        JSON.stringify({ error: 'Invalid RFID card number' }),
+        JSON.stringify({ error: 'Invalid input' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (employee_id && employee_id.length > 50) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid Employee ID' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Find employee by RFID or Employee ID
+    // Find employee
     let employeeQuery = supabase
       .from('employees')
       .select('id, first_name, last_name, employee_id, branch_id')
@@ -110,7 +97,6 @@ serve(async (req) => {
     if (rfid_card_number) {
       employeeQuery = employeeQuery.ilike('rfid_card_number', rfid_card_number);
     } else if (employee_id) {
-      // Case-insensitive matching for employee_id
       employeeQuery = employeeQuery.ilike('employee_id', employee_id);
     }
 
@@ -128,17 +114,12 @@ serve(async (req) => {
     const today = now.toISOString().split('T')[0];
     const currentTime = now.toISOString();
 
-    // Check if employee has ANY schedule assigned
-    const { data: allSchedules, error: scheduleCountError } = await supabase
+    // Check if employee has any schedule
+    const { data: allSchedules } = await supabase
       .from('employee_schedules')
       .select('id')
       .eq('employee_id', employee.id);
     
-    if (scheduleCountError) {
-      console.error('Schedule count error:', scheduleCountError);
-    }
-
-    // If employee has no schedule at all, reject attendance
     if (!allSchedules || allSchedules.length === 0) {
       return new Response(
         JSON.stringify({ 
@@ -150,8 +131,8 @@ serve(async (req) => {
       );
     }
 
-    // Check employee schedule for today
-    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    // Check today's schedule
+    const dayOfWeek = now.getDay();
     const { data: scheduleData } = await supabase
       .from('employee_schedules')
       .select('*')
@@ -159,8 +140,7 @@ serve(async (req) => {
       .eq('day_of_week', dayOfWeek)
       .single();
 
-    // If no schedule for today (employee has schedule but not for this day)
-    if (!scheduleData) {
+    if (!scheduleData || !scheduleData.is_duty_day) {
       return new Response(
         JSON.stringify({ 
           error: 'No duty today',
@@ -171,36 +151,33 @@ serve(async (req) => {
       );
     }
 
-    // If schedule exists but today is not a duty day
-    if (!scheduleData.is_duty_day) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'No duty today',
-          employee_name: `${employee.first_name} ${employee.last_name}`,
-          message: 'You are not scheduled to work today.'
-        }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check for existing attendance record today
-    const { data: existingRecord, error: recordError } = await supabase
+    // Get existing attendance record
+    const { data: existingRecord } = await supabase
       .from('attendance')
       .select('*')
       .eq('employee_id', employee.id)
       .eq('date', today)
       .single();
 
+    // 4-Time Schedule Logic:
+    // 1st scan -> morning_in
+    // 2nd scan -> morning_out
+    // 3rd scan -> afternoon_in  
+    // 4th scan -> afternoon_out
+    
     let result;
-    let action: 'time_in' | 'time_out';
+    let action: 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out';
+
+    const morningStart = scheduleData.morning_start || '08:00';
+    const morningEnd = scheduleData.morning_end || '12:00';
+    const afternoonStart = scheduleData.afternoon_start || '13:00';
+    const afternoonEnd = scheduleData.afternoon_end || '17:00';
 
     if (!existingRecord) {
-      // First scan of the day - Time In
-      action = 'time_in';
+      // 1st scan - Morning In
+      action = 'morning_in';
       
-      // Use employee's schedule start time if available, otherwise use terminal settings
-      const startTimeStr = scheduleData.start_time || settings.work_start_time;
-      const startTime = new Date(today + `T${startTimeStr}`);
+      const startTime = new Date(`${today}T${morningStart}`);
       const graceEndTime = new Date(startTime.getTime() + (settings.grace_period_minutes * 60 * 1000));
       
       let lateMinutes = 0;
@@ -216,6 +193,7 @@ serve(async (req) => {
           employee_id: employee.id,
           date: today,
           time_in: currentTime,
+          morning_in: currentTime,
           rfid_time_in: rfid_card_number,
           status: status,
           late_minutes: lateMinutes,
@@ -223,21 +201,57 @@ serve(async (req) => {
         .select()
         .single();
 
-      if (error) {
-        console.error('Insert error:', error);
-        throw error;
-      }
+      if (error) throw error;
       result = data;
-    } else if (!existingRecord.time_out) {
-      // Second scan - Time Out
-      action = 'time_out';
+    } else if (!existingRecord.morning_out) {
+      // 2nd scan - Morning Out
+      action = 'morning_out';
+
+      const { data, error } = await supabase
+        .from('attendance')
+        .update({
+          morning_out: currentTime,
+        })
+        .eq('id', existingRecord.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      result = data;
+    } else if (!existingRecord.afternoon_in) {
+      // 3rd scan - Afternoon In
+      action = 'afternoon_in';
+
+      const { data, error } = await supabase
+        .from('attendance')
+        .update({
+          afternoon_in: currentTime,
+        })
+        .eq('id', existingRecord.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      result = data;
+    } else if (!existingRecord.afternoon_out) {
+      // 4th scan - Afternoon Out
+      action = 'afternoon_out';
+
+      // Calculate hours worked
+      const morningIn = existingRecord.morning_in ? new Date(existingRecord.morning_in) : null;
+      const morningOut = existingRecord.morning_out ? new Date(existingRecord.morning_out) : null;
+      const afternoonIn = existingRecord.afternoon_in ? new Date(existingRecord.afternoon_in) : null;
       
-      const timeIn = new Date(existingRecord.time_in);
-      const hoursWorked = (now.getTime() - timeIn.getTime()) / (1000 * 60 * 60);
-      
-      // Use employee's schedule end time if available, otherwise use terminal settings
-      const endTimeStr = scheduleData.end_time || settings.work_end_time;
-      const endTime = new Date(today + `T${endTimeStr}`);
+      let totalHours = 0;
+      if (morningIn && morningOut) {
+        totalHours += (morningOut.getTime() - morningIn.getTime()) / (1000 * 60 * 60);
+      }
+      if (afternoonIn) {
+        totalHours += (now.getTime() - afternoonIn.getTime()) / (1000 * 60 * 60);
+      }
+
+      // Calculate undertime
+      const endTime = new Date(`${today}T${afternoonEnd}`);
       let undertimeMinutes = 0;
       if (now < endTime) {
         undertimeMinutes = Math.floor((endTime.getTime() - now.getTime()) / (1000 * 60));
@@ -245,16 +259,17 @@ serve(async (req) => {
 
       // Calculate overtime (hours beyond 8)
       let overtimeHours = 0;
-      if (hoursWorked > 8) {
-        overtimeHours = hoursWorked - 8;
+      if (totalHours > 8) {
+        overtimeHours = totalHours - 8;
       }
 
       const { data, error } = await supabase
         .from('attendance')
         .update({
           time_out: currentTime,
+          afternoon_out: currentTime,
           rfid_time_out: rfid_card_number,
-          hours_worked: Math.round(hoursWorked * 100) / 100,
+          hours_worked: Math.round(totalHours * 100) / 100,
           undertime_minutes: undertimeMinutes,
           overtime_hours: Math.round(overtimeHours * 100) / 100,
         })
@@ -262,23 +277,30 @@ serve(async (req) => {
         .select()
         .single();
 
-      if (error) {
-        console.error('Update error:', error);
-        throw error;
-      }
+      if (error) throw error;
       result = data;
     } else {
-      // Already clocked in and out today
+      // Already completed all 4 punches
       return new Response(
         JSON.stringify({ 
           error: 'Already completed attendance for today',
           employee_name: `${employee.first_name} ${employee.last_name}`,
-          time_in: existingRecord.time_in,
-          time_out: existingRecord.time_out,
+          morning_in: existingRecord.morning_in,
+          morning_out: existingRecord.morning_out,
+          afternoon_in: existingRecord.afternoon_in,
+          afternoon_out: existingRecord.afternoon_out,
         }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Map action to display text
+    const actionLabels = {
+      morning_in: 'MORNING IN',
+      morning_out: 'MORNING OUT',
+      afternoon_in: 'AFTERNOON IN',
+      afternoon_out: 'AFTERNOON OUT',
+    };
 
     console.log(`Attendance ${action} recorded for ${employee.first_name} ${employee.last_name}`);
 
@@ -286,6 +308,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         action,
+        action_label: actionLabels[action],
         employee_id: employee.employee_id,
         employee_name: `${employee.first_name} ${employee.last_name}`,
         timestamp: currentTime,
@@ -296,7 +319,6 @@ serve(async (req) => {
 
   } catch (error: unknown) {
     console.error('RFID Attendance Error:', error);
-    // Return generic error message to client, log details server-side
     return new Response(
       JSON.stringify({ error: 'Failed to process attendance' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -4,7 +4,7 @@ import { useTerminalSettings } from './useSettings';
 
 interface AttendanceResult {
   success: boolean;
-  action?: 'time_in' | 'time_out';
+  action?: 'time_in' | 'time_out' | 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out';
   employee_id?: string;
   employee_name?: string;
   timestamp?: string;
