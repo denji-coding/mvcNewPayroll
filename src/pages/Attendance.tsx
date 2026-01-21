@@ -23,7 +23,13 @@ export default function Attendance() {
   const updateAttendance = useUpdateAttendance();
 
   const [editRecord, setEditRecord] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ time_in: '', time_out: '', remarks: '' });
+  const [editForm, setEditForm] = useState({ 
+    morning_in: '', 
+    morning_out: '', 
+    afternoon_in: '', 
+    afternoon_out: '', 
+    remarks: '' 
+  });
 
   const { currentPage, setCurrentPage, totalPages, paginatedItems } = usePagination(attendance || [], 10);
 
@@ -39,23 +45,31 @@ export default function Attendance() {
   const handleEdit = (record: any) => {
     setEditRecord(record);
     setEditForm({
-      time_in: record.time_in ? format(parseISO(record.time_in), "HH:mm") : '',
-      time_out: record.time_out ? format(parseISO(record.time_out), "HH:mm") : '',
+      morning_in: record.morning_in ? format(parseISO(record.morning_in), "HH:mm") : (record.time_in ? format(parseISO(record.time_in), "HH:mm") : ''),
+      morning_out: record.morning_out ? format(parseISO(record.morning_out), "HH:mm") : '',
+      afternoon_in: record.afternoon_in ? format(parseISO(record.afternoon_in), "HH:mm") : '',
+      afternoon_out: record.afternoon_out ? format(parseISO(record.afternoon_out), "HH:mm") : (record.time_out ? format(parseISO(record.time_out), "HH:mm") : ''),
       remarks: record.remarks || ''
     });
   };
 
   const handleSaveEdit = () => {
     if (!editRecord) return;
-    const timeIn = editForm.time_in ? `${dateStr}T${editForm.time_in}:00` : null;
-    const timeOut = editForm.time_out ? `${dateStr}T${editForm.time_out}:00` : null;
+    const morningIn = editForm.morning_in ? `${dateStr}T${editForm.morning_in}:00` : null;
+    const morningOut = editForm.morning_out ? `${dateStr}T${editForm.morning_out}:00` : null;
+    const afternoonIn = editForm.afternoon_in ? `${dateStr}T${editForm.afternoon_in}:00` : null;
+    const afternoonOut = editForm.afternoon_out ? `${dateStr}T${editForm.afternoon_out}:00` : null;
     
     updateAttendance.mutate({
       id: editRecord.id,
-      time_in: timeIn,
-      time_out: timeOut,
+      time_in: morningIn,
+      time_out: afternoonOut,
+      morning_in: morningIn,
+      morning_out: morningOut,
+      afternoon_in: afternoonIn,
+      afternoon_out: afternoonOut,
       remarks: editForm.remarks || null
-    }, {
+    } as any, {
       onSuccess: () => setEditRecord(null)
     });
   };
@@ -63,12 +77,14 @@ export default function Attendance() {
   const exportCSV = () => {
     if (!attendance || attendance.length === 0) return;
     
-    const headers = ['Employee ID', 'Name', 'Time In', 'Time Out', 'Hours Worked', 'Late (min)', 'Status'];
+    const headers = ['Employee ID', 'Name', 'AM In', 'AM Out', 'PM In', 'PM Out', 'Hours Worked', 'Late (min)', 'Status'];
     const rows = attendance.map((a: any) => [
       a.employees?.employee_id || '',
       `${a.employees?.first_name || ''} ${a.employees?.last_name || ''}`,
-      formatTime(a.time_in),
-      formatTime(a.time_out),
+      formatTime(a.morning_in || a.time_in),
+      formatTime(a.morning_out),
+      formatTime(a.afternoon_in),
+      formatTime(a.afternoon_out || a.time_out),
       a.hours_worked?.toFixed(2) || '0',
       a.late_minutes || '0',
       a.status || 'present'
@@ -144,69 +160,91 @@ export default function Attendance() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Time In</TableHead>
-                <TableHead>Time Out</TableHead>
-                <TableHead>Hours</TableHead>
-                <TableHead>Late (min)</TableHead>
-                <TableHead>Status</TableHead>
-                {role === 'hr_admin' && <TableHead>Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                [1, 2, 3].map(i => (
-                  <TableRow key={i}>
-                    {[1, 2, 3, 4, 5, 6, 7].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
-                  </TableRow>
-                ))
-              ) : paginatedItems.length > 0 ? (
-                paginatedItems.map((a: any) => (
-                  <TableRow key={a.id}>
-                    <TableCell>{a.employees?.employee_id}</TableCell>
-                    <TableCell>{a.employees?.first_name} {a.employees?.last_name}</TableCell>
-                    <TableCell>{formatTime(a.time_in)}</TableCell>
-                    <TableCell>{formatTime(a.time_out)}</TableCell>
-                    <TableCell>{a.hours_worked?.toFixed(2) || '-'}</TableCell>
-                    <TableCell>{a.late_minutes || 0}</TableCell>
-                    <TableCell>{getStatusBadge(a.status || 'present')}</TableCell>
-                    {role === 'hr_admin' && (
-                      <TableCell>
-                        <Dialog open={editRecord?.id === a.id} onOpenChange={(open) => !open && setEditRecord(null)}>
-                          <DialogTrigger asChild>
-                            <Button size="sm" variant="ghost" onClick={() => handleEdit(a)}>
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader><DialogTitle>Edit Attendance</DialogTitle></DialogHeader>
-                            <div className="space-y-4">
-                              <div><Label>Time In</Label><Input type="time" value={editForm.time_in} onChange={(e) => setEditForm({ ...editForm, time_in: e.target.value })} /></div>
-                              <div><Label>Time Out</Label><Input type="time" value={editForm.time_out} onChange={(e) => setEditForm({ ...editForm, time_out: e.target.value })} /></div>
-                              <div><Label>Remarks</Label><Input value={editForm.remarks} onChange={(e) => setEditForm({ ...editForm, remarks: e.target.value })} /></div>
-                              <Button onClick={handleSaveEdit} className="w-full" disabled={updateAttendance.isPending}>
-                                {updateAttendance.isPending ? 'Saving...' : 'Save Changes'}
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))
-              ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={role === 'hr_admin' ? 8 : 7} className="text-center py-8 text-muted-foreground">
-                    No attendance records for this date
-                  </TableCell>
+                  <TableHead>Employee ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>AM In</TableHead>
+                  <TableHead>AM Out</TableHead>
+                  <TableHead>PM In</TableHead>
+                  <TableHead>PM Out</TableHead>
+                  <TableHead>Hours</TableHead>
+                  <TableHead>Late</TableHead>
+                  <TableHead>Status</TableHead>
+                  {role === 'hr_admin' && <TableHead>Actions</TableHead>}
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  [1, 2, 3].map(i => (
+                    <TableRow key={i}>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
+                    </TableRow>
+                  ))
+                ) : paginatedItems.length > 0 ? (
+                  paginatedItems.map((a: any) => (
+                    <TableRow key={a.id}>
+                      <TableCell>{a.employees?.employee_id}</TableCell>
+                      <TableCell>{a.employees?.first_name} {a.employees?.last_name}</TableCell>
+                      <TableCell>{formatTime(a.morning_in || a.time_in)}</TableCell>
+                      <TableCell>{formatTime(a.morning_out)}</TableCell>
+                      <TableCell>{formatTime(a.afternoon_in)}</TableCell>
+                      <TableCell>{formatTime(a.afternoon_out || a.time_out)}</TableCell>
+                      <TableCell>{a.hours_worked?.toFixed(2) || '-'}</TableCell>
+                      <TableCell>{a.late_minutes || 0}</TableCell>
+                      <TableCell>{getStatusBadge(a.status || 'present')}</TableCell>
+                      {role === 'hr_admin' && (
+                        <TableCell>
+                          <Dialog open={editRecord?.id === a.id} onOpenChange={(open) => !open && setEditRecord(null)}>
+                            <DialogTrigger asChild>
+                              <Button size="sm" variant="ghost" onClick={() => handleEdit(a)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader><DialogTitle>Edit Attendance</DialogTitle></DialogHeader>
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <Label>AM In</Label>
+                                    <Input type="time" value={editForm.morning_in} onChange={(e) => setEditForm({ ...editForm, morning_in: e.target.value })} />
+                                  </div>
+                                  <div>
+                                    <Label>AM Out</Label>
+                                    <Input type="time" value={editForm.morning_out} onChange={(e) => setEditForm({ ...editForm, morning_out: e.target.value })} />
+                                  </div>
+                                  <div>
+                                    <Label>PM In</Label>
+                                    <Input type="time" value={editForm.afternoon_in} onChange={(e) => setEditForm({ ...editForm, afternoon_in: e.target.value })} />
+                                  </div>
+                                  <div>
+                                    <Label>PM Out</Label>
+                                    <Input type="time" value={editForm.afternoon_out} onChange={(e) => setEditForm({ ...editForm, afternoon_out: e.target.value })} />
+                                  </div>
+                                </div>
+                                <div><Label>Remarks</Label><Input value={editForm.remarks} onChange={(e) => setEditForm({ ...editForm, remarks: e.target.value })} /></div>
+                                <Button onClick={handleSaveEdit} className="w-full" disabled={updateAttendance.isPending}>
+                                  {updateAttendance.isPending ? 'Saving...' : 'Save Changes'}
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={role === 'hr_admin' ? 10 : 9} className="text-center py-8 text-muted-foreground">
+                      No attendance records for this date
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
           <TablePagination
             currentPage={currentPage}
             totalPages={totalPages}

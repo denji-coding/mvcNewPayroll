@@ -16,6 +16,7 @@ import {
   useSaveEmployeeSchedule,
   useDeleteEmployeeSchedule,
   getDayName,
+  type DaySchedule,
 } from '@/hooks/useEmployeeSchedule';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
@@ -39,18 +40,13 @@ const SHORT_DAYS: Record<number, string> = {
   6: 'Sat',
 };
 
-interface DaySchedule {
-  day_of_week: number;
-  is_duty_day: boolean;
-  start_time: string;
-  end_time: string;
-}
-
 const DEFAULT_SCHEDULE: DaySchedule[] = DAYS.map(d => ({
   day_of_week: d.value,
   is_duty_day: d.value >= 1 && d.value <= 5, // Mon-Fri by default
-  start_time: '08:00',
-  end_time: '17:00',
+  morning_start: '08:00',
+  morning_end: '12:00',
+  afternoon_start: '13:00',
+  afternoon_end: '17:00',
 }));
 
 export default function TimeSchedule() {
@@ -73,15 +69,24 @@ export default function TimeSchedule() {
   // Group schedules by employee
   const groupedSchedules = useMemo(() => {
     if (!allSchedules) return [];
-    const grouped: Record<string, { employee: any; dutyDays: number[]; startTime: string; endTime: string }> = {};
+    const grouped: Record<string, { 
+      employee: any; 
+      dutyDays: number[]; 
+      morningStart: string;
+      morningEnd: string;
+      afternoonStart: string;
+      afternoonEnd: string;
+    }> = {};
     
     allSchedules.forEach((schedule: any) => {
       if (!grouped[schedule.employee_id]) {
         grouped[schedule.employee_id] = {
           employee: schedule.employees,
           dutyDays: [],
-          startTime: schedule.start_time,
-          endTime: schedule.end_time,
+          morningStart: schedule.morning_start || schedule.start_time || '08:00',
+          morningEnd: schedule.morning_end || '12:00',
+          afternoonStart: schedule.afternoon_start || '13:00',
+          afternoonEnd: schedule.afternoon_end || schedule.end_time || '17:00',
         };
       }
       if (schedule.is_duty_day) {
@@ -99,7 +104,6 @@ export default function TimeSchedule() {
   const availableEmployees = useMemo(() => {
     if (!employees) return [];
     if (isEditing && selectedEmployee) {
-      // When editing, include the selected employee
       return employees.filter(e => !employeesWithSchedules.has(e.id) || e.id === selectedEmployee);
     }
     return employees.filter(e => !employeesWithSchedules.has(e.id));
@@ -114,15 +118,19 @@ export default function TimeSchedule() {
           return {
             day_of_week: existing.day_of_week,
             is_duty_day: existing.is_duty_day,
-            start_time: existing.start_time,
-            end_time: existing.end_time,
+            morning_start: existing.morning_start || existing.start_time || '08:00',
+            morning_end: existing.morning_end || '12:00',
+            afternoon_start: existing.afternoon_start || '13:00',
+            afternoon_end: existing.afternoon_end || existing.end_time || '17:00',
           };
         }
         return {
           day_of_week: d.value,
           is_duty_day: false,
-          start_time: '08:00',
-          end_time: '17:00',
+          morning_start: '08:00',
+          morning_end: '12:00',
+          afternoon_start: '13:00',
+          afternoon_end: '17:00',
         };
       });
       setSchedules(loadedSchedules);
@@ -141,7 +149,7 @@ export default function TimeSchedule() {
     );
   };
 
-  const handleTimeChange = (dayOfWeek: number, field: 'start_time' | 'end_time', value: string) => {
+  const handleTimeChange = (dayOfWeek: number, field: keyof DaySchedule, value: string) => {
     setSchedules(prev => 
       prev.map(s => 
         s.day_of_week === dayOfWeek 
@@ -198,7 +206,9 @@ export default function TimeSchedule() {
     setSchedules(DEFAULT_SCHEDULE);
   };
 
-  const selectedEmployeeData = employees?.find(e => e.id === selectedEmployee);
+  const formatTimeRange = (start: string, end: string) => {
+    return `${start?.slice(0, 5) || '--:--'} - ${end?.slice(0, 5) || '--:--'}`;
+  };
 
   return (
     <div className="page-container">
@@ -209,7 +219,7 @@ export default function TimeSchedule() {
             Time Schedule
           </h1>
           <p className="text-muted-foreground mt-1">
-            Set work schedules for employees to manage attendance duty days
+            Set 4-time work schedules for employees (Morning In/Out, Afternoon In/Out)
           </p>
         </div>
       </div>
@@ -239,12 +249,13 @@ export default function TimeSchedule() {
                     <TableHead>Employee ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Duty Days</TableHead>
-                    <TableHead>Work Hours</TableHead>
+                    <TableHead>Morning</TableHead>
+                    <TableHead>Afternoon</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {groupedSchedules.map(({ employeeId, employee, dutyDays, startTime, endTime }) => (
+                  {groupedSchedules.map(({ employeeId, employee, dutyDays, morningStart, morningEnd, afternoonStart, afternoonEnd }) => (
                     <TableRow key={employeeId}>
                       <TableCell className="font-mono text-sm">
                         {employee?.employee_id || '-'}
@@ -268,9 +279,15 @@ export default function TimeSchedule() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="flex items-center gap-1 w-fit">
+                        <Badge variant="secondary" className="flex items-center gap-1 w-fit text-xs">
                           <Clock className="h-3 w-3" />
-                          {startTime?.slice(0, 5)} - {endTime?.slice(0, 5)}
+                          {formatTimeRange(morningStart, morningEnd)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="flex items-center gap-1 w-fit text-xs">
+                          <Clock className="h-3 w-3" />
+                          {formatTimeRange(afternoonStart, afternoonEnd)}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -383,7 +400,7 @@ export default function TimeSchedule() {
                 </Button>
               </div>
 
-              {/* Schedule Table */}
+              {/* Schedule Table - 4 Time Format */}
               {scheduleLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3, 4, 5, 6, 7].map(i => (
@@ -395,52 +412,62 @@ export default function TimeSchedule() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-32">Day</TableHead>
-                        <TableHead className="w-24">Duty Day</TableHead>
-                        <TableHead>Start Time</TableHead>
-                        <TableHead>End Time</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="w-24">Day</TableHead>
+                        <TableHead className="w-20">Duty</TableHead>
+                        <TableHead>AM In</TableHead>
+                        <TableHead>AM Out</TableHead>
+                        <TableHead>PM In</TableHead>
+                        <TableHead>PM Out</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {DAYS.map(day => {
                         const schedule = schedules.find(s => s.day_of_week === day.value);
+                        const isDuty = schedule?.is_duty_day || false;
                         return (
                           <TableRow key={day.value}>
                             <TableCell className="font-medium">{day.label}</TableCell>
                             <TableCell>
                               <Switch
-                                checked={schedule?.is_duty_day || false}
+                                checked={isDuty}
                                 onCheckedChange={(checked) => handleDayToggle(day.value, checked)}
                               />
                             </TableCell>
                             <TableCell>
                               <Input
                                 type="time"
-                                value={schedule?.start_time || '08:00'}
-                                onChange={(e) => handleTimeChange(day.value, 'start_time', e.target.value)}
-                                disabled={!schedule?.is_duty_day}
-                                className="w-28"
+                                value={schedule?.morning_start || '08:00'}
+                                onChange={(e) => handleTimeChange(day.value, 'morning_start', e.target.value)}
+                                disabled={!isDuty}
+                                className="w-24"
                               />
                             </TableCell>
                             <TableCell>
                               <Input
                                 type="time"
-                                value={schedule?.end_time || '17:00'}
-                                onChange={(e) => handleTimeChange(day.value, 'end_time', e.target.value)}
-                                disabled={!schedule?.is_duty_day}
-                                className="w-28"
+                                value={schedule?.morning_end || '12:00'}
+                                onChange={(e) => handleTimeChange(day.value, 'morning_end', e.target.value)}
+                                disabled={!isDuty}
+                                className="w-24"
                               />
                             </TableCell>
                             <TableCell>
-                              {schedule?.is_duty_day ? (
-                                <Badge variant="default" className="flex items-center gap-1 w-fit">
-                                  <Clock className="h-3 w-3" />
-                                  {schedule.start_time} - {schedule.end_time}
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary">No Duty</Badge>
-                              )}
+                              <Input
+                                type="time"
+                                value={schedule?.afternoon_start || '13:00'}
+                                onChange={(e) => handleTimeChange(day.value, 'afternoon_start', e.target.value)}
+                                disabled={!isDuty}
+                                className="w-24"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="time"
+                                value={schedule?.afternoon_end || '17:00'}
+                                onChange={(e) => handleTimeChange(day.value, 'afternoon_end', e.target.value)}
+                                disabled={!isDuty}
+                                className="w-24"
+                              />
                             </TableCell>
                           </TableRow>
                         );
@@ -458,16 +485,10 @@ export default function TimeSchedule() {
                   </Button>
                 )}
                 <Button onClick={handleSave} disabled={saveSchedule.isPending}>
-                  <Save className="h-4 w-4 mr-2" />
-                  {saveSchedule.isPending ? 'Saving...' : isEditing ? 'Update Schedule' : 'Save Schedule'}
+                  <Save className="mr-2 h-4 w-4" />
+                  {saveSchedule.isPending ? 'Saving...' : 'Save Schedule'}
                 </Button>
               </div>
-
-              {selectedEmployeeData && (
-                <p className="text-sm text-muted-foreground">
-                  {isEditing ? 'Editing' : 'Configuring'} schedule for: <strong>{selectedEmployeeData.first_name} {selectedEmployeeData.last_name}</strong>
-                </p>
-              )}
             </>
           )}
         </CardContent>
