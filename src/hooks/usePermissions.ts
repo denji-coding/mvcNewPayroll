@@ -27,6 +27,9 @@ export const AVAILABLE_PERMISSIONS = [
   { key: 'page_settings', label: 'Settings', description: 'Access to the settings page' },
   { key: 'page_clock_inout', label: 'Clock In/Out', description: 'Access to clock in/out functionality' },
   { key: 'page_my_attendance', label: 'My Attendance', description: 'View personal attendance records' },
+  { key: 'page_dtr', label: 'Daily Time Record', description: 'Access to DTR records page' },
+  { key: 'page_positions', label: 'Positions', description: 'Access to positions management' },
+  { key: 'page_time_schedule', label: 'Time Schedule', description: 'Access to time schedule management' },
 ] as const;
 
 export type PermissionKey = typeof AVAILABLE_PERMISSIONS[number]['key'];

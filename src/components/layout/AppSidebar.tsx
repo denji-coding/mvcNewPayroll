@@ -13,9 +13,11 @@ import {
   MonitorSmartphone,
   CalendarClock,
   Briefcase,
+  ClipboardList,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
+import { useRolePermissionsByRole, PermissionKey } from '@/hooks/usePermissions';
 import {
   Sidebar,
   SidebarContent,
@@ -37,32 +39,66 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 
-const navigationItems: { title: string; url: string; icon: React.ComponentType<{ className?: string }>; roles: string[]; external?: boolean }[] = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['hr_admin', 'branch_manager', 'employee'] },
-  { title: 'Employees', url: '/employees', icon: Users, roles: ['hr_admin', 'branch_manager'] },
-  { title: 'Positions', url: '/positions', icon: Briefcase, roles: ['hr_admin'] },
-  { title: 'Branches', url: '/branches', icon: Building2, roles: ['hr_admin'] },
-  { title: 'Time Schedule', url: '/time-schedule', icon: CalendarClock, roles: ['hr_admin'] },
-  { title: 'My Attendance', url: '/my-attendance', icon: IdCard, roles: ['employee'] },
+// Navigation items with permission keys
+const navigationItems: { 
+  title: string; 
+  url: string; 
+  icon: React.ComponentType<{ className?: string }>; 
+  roles: string[]; 
+  permissionKey?: PermissionKey;
+  external?: boolean;
+}[] = [
+  { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_dashboard' },
+  { title: 'Employees', url: '/employees', icon: Users, roles: ['hr_admin', 'branch_manager'], permissionKey: 'page_employees' },
+  { title: 'Positions', url: '/positions', icon: Briefcase, roles: ['hr_admin'], permissionKey: 'page_positions' },
+  { title: 'Branches', url: '/branches', icon: Building2, roles: ['hr_admin'], permissionKey: 'page_branches' },
+  { title: 'Time Schedule', url: '/time-schedule', icon: CalendarClock, roles: ['hr_admin'], permissionKey: 'page_time_schedule' },
+  { title: 'DTR', url: '/dtr', icon: ClipboardList, roles: ['employee'], permissionKey: 'page_dtr' },
+  { title: 'My Attendance', url: '/my-attendance', icon: IdCard, roles: ['employee'], permissionKey: 'page_my_attendance' },
   { title: 'Attendance Terminal', url: '/attendance-terminal', icon: MonitorSmartphone, roles: ['hr_admin'], external: true },
-  { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager'] },
-  { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'] },
-  { title: 'Payroll', url: '/payroll', icon: DollarSign, roles: ['hr_admin', 'branch_manager', 'employee'] },
-  { title: 'Reports', url: '/reports', icon: FileText, roles: ['hr_admin', 'branch_manager'] },
-  { title: 'Settings', url: '/settings', icon: Settings, roles: ['hr_admin'] },
+  { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager'], permissionKey: 'page_attendance' },
+  { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_leaves' },
+  { title: 'Payroll', url: '/payroll', icon: DollarSign, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_payroll' },
+  { title: 'Reports', url: '/reports', icon: FileText, roles: ['hr_admin', 'branch_manager'], permissionKey: 'page_reports' },
+  { title: 'Settings', url: '/settings', icon: Settings, roles: ['hr_admin'], permissionKey: 'page_settings' },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const { role, profile, signOut } = useAuth();
+  const { data: permissions, isLoading: permissionsLoading } = useRolePermissionsByRole(role);
   const collapsed = state === 'collapsed';
 
-  const filteredItems = navigationItems.filter(
-    (item) => !role || item.roles.includes(role)
-  );
+  // Filter navigation items based on role and permissions
+  const filteredItems = navigationItems.filter((item) => {
+    // Must have a role to see anything
+    if (!role) return false;
+    
+    // Check if item is for this role
+    if (!item.roles.includes(role)) return false;
+    
+    // HR Admin always has full access - no permission checks needed
+    if (role === 'hr_admin') return true;
+    
+    // For external links (like attendance terminal), just check role
+    if (item.external) return true;
+    
+    // If no permission key defined, fall back to role check
+    if (!item.permissionKey) return true;
+    
+    // While loading permissions, show items based on role only
+    if (permissionsLoading || !permissions) return true;
+    
+    // Check if permission is enabled in the database
+    const permission = permissions.find(p => p.permission_key === item.permissionKey);
+    
+    // If no permission record exists, default to showing (for backwards compatibility)
+    if (!permission) return true;
+    
+    return permission.enabled;
+  });
 
   const getInitials = () => {
     if (profile?.firstName && profile?.lastName) {
