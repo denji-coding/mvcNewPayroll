@@ -26,6 +26,7 @@ import NotFound from "./pages/NotFound";
 import TimeSchedule from "./pages/TimeSchedule";
 import Positions from "./pages/Positions";
 import ChangePassword from "./pages/ChangePassword";
+import DailyTimeRecord from "./pages/DailyTimeRecord";
 
 // Layout
 import AppLayout from "./components/layout/AppLayout";
@@ -107,6 +108,7 @@ function AppRoutes() {
         <Route path="attendance" element={<Attendance />} />
         <Route path="clock-in-out" element={<ClockInOut />} />
         <Route path="my-attendance" element={<MyAttendance />} />
+        <Route path="dtr" element={<DailyTimeRecord />} />
         <Route path="time-schedule" element={<TimeSchedule />} />
         <Route path="leaves" element={<Leaves />} />
         <Route path="payroll" element={<Payroll />} />

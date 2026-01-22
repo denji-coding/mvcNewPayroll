@@ -99,166 +99,170 @@ function AdminDashboard() {
         ))}
       </div>
 
-      {/* Charts Row */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Attendance Trend Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Attendance Trend (7 Days)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {attendanceTrend && attendanceTrend.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
-                <AreaChart data={attendanceTrend} margin={{ left: -20, right: 10, top: 5, bottom: 5 }}>
-                  <XAxis 
-                    dataKey="day" 
-                    tick={{ fontSize: 10 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 10 }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={30}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area
-                    type="monotone"
-                    dataKey="present"
-                    stackId="1"
-                    stroke="hsl(var(--chart-1))"
-                    fill="hsl(var(--chart-1))"
-                    fillOpacity={0.6}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="absent"
-                    stackId="1"
-                    stroke="hsl(var(--chart-2))"
-                    fill="hsl(var(--chart-2))"
-                    fillOpacity={0.6}
-                  />
-                </AreaChart>
-              </ChartContainer>
-            ) : (
-              <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
-                No attendance data available
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Charts Row - Scrollable on mobile */}
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible">
+        <div className="grid gap-4 md:grid-cols-2 min-w-[600px] md:min-w-0">
+          {/* Attendance Trend Chart */}
+          <Card className="min-w-[280px]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm sm:text-base">Attendance Trend (7 Days)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {attendanceTrend && attendanceTrend.length > 0 ? (
+                <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] w-full">
+                  <AreaChart data={attendanceTrend} margin={{ left: -20, right: 10, top: 5, bottom: 5 }}>
+                    <XAxis 
+                      dataKey="day" 
+                      tick={{ fontSize: 10 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 10 }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={30}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Area
+                      type="monotone"
+                      dataKey="present"
+                      stackId="1"
+                      stroke="hsl(var(--chart-1))"
+                      fill="hsl(var(--chart-1))"
+                      fillOpacity={0.6}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="absent"
+                      stackId="1"
+                      stroke="hsl(var(--chart-2))"
+                      fill="hsl(var(--chart-2))"
+                      fillOpacity={0.6}
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              ) : (
+                <div className="h-[180px] sm:h-[220px] flex items-center justify-center text-muted-foreground text-sm">
+                  No attendance data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Leave Requests by Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Leave Requests by Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {leavesByStatus && leavesByStatus.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
-                <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                  <Pie
-                    data={leavesByStatus}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={60}
-                    innerRadius={25}
-                    label={({ name, value }) => `${value}`}
-                    labelLine={false}
-                  >
-                    {leavesByStatus.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
-                    ))}
-                  </Pie>
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Legend 
-                    layout="horizontal" 
-                    verticalAlign="bottom" 
-                    align="center"
-                    wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }}
-                  />
-                </PieChart>
-              </ChartContainer>
-            ) : (
-              <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
-                No leave requests data
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {/* Leave Requests by Status */}
+          <Card className="min-w-[280px]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm sm:text-base">Leave Requests by Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {leavesByStatus && leavesByStatus.length > 0 ? (
+                <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] w-full">
+                  <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                    <Pie
+                      data={leavesByStatus}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={50}
+                      innerRadius={20}
+                      label={({ value }) => `${value}`}
+                      labelLine={false}
+                    >
+                      {leavesByStatus.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                      ))}
+                    </Pie>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Legend 
+                      layout="horizontal" 
+                      verticalAlign="bottom" 
+                      align="center"
+                      wrapperStyle={{ fontSize: '9px', paddingTop: '8px' }}
+                    />
+                  </PieChart>
+                </ChartContainer>
+              ) : (
+                <div className="h-[180px] sm:h-[220px] flex items-center justify-center text-muted-foreground text-sm">
+                  No leave requests data
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Second Charts Row */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Employees by Branch */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Employees by Branch</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {employeesByBranch && employeesByBranch.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
-                <BarChart data={employeesByBranch} layout="vertical" margin={{ left: 0, right: 10, top: 5, bottom: 5 }}>
-                  <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                  <YAxis 
-                    dataKey="name" 
-                    type="category" 
-                    width={60} 
-                    tick={{ fontSize: 9 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="employees" fill="hsl(var(--chart-3))" radius={4} />
-                </BarChart>
-              </ChartContainer>
-            ) : (
-              <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
-                No branch data available
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Second Charts Row - Scrollable on mobile */}
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible">
+        <div className="grid gap-4 md:grid-cols-2 min-w-[600px] md:min-w-0">
+          {/* Employees by Branch */}
+          <Card className="min-w-[280px]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm sm:text-base">Employees by Branch</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {employeesByBranch && employeesByBranch.length > 0 ? (
+                <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] w-full">
+                  <BarChart data={employeesByBranch} layout="vertical" margin={{ left: 0, right: 10, top: 5, bottom: 5 }}>
+                    <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                    <YAxis 
+                      dataKey="name" 
+                      type="category" 
+                      width={50} 
+                      tick={{ fontSize: 8 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Bar dataKey="employees" fill="hsl(var(--chart-3))" radius={4} />
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <div className="h-[180px] sm:h-[220px] flex items-center justify-center text-muted-foreground text-sm">
+                  No branch data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Payroll Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Payroll Summary (Last 4 Periods)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {payrollSummary && payrollSummary.length > 0 ? (
-              <ChartContainer config={chartConfig} className="h-[200px] sm:h-[250px] w-full">
-                <BarChart data={payrollSummary} margin={{ left: -10, right: 10, top: 5, bottom: 5 }}>
-                  <XAxis 
-                    dataKey="period" 
-                    tick={{ fontSize: 9 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis 
-                    tickFormatter={(value) => `₱${value}K`}
-                    tick={{ fontSize: 10 }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={45}
-                  />
-                  <ChartTooltip
-                    content={<ChartTooltipContent />}
-                    formatter={(value: number) => [`₱${value.toFixed(0)}K`, 'Total']}
-                  />
-                  <Bar dataKey="total" fill="hsl(var(--chart-4))" radius={4} />
-                </BarChart>
-              </ChartContainer>
-            ) : (
-              <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
-                No payroll data available
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {/* Payroll Summary */}
+          <Card className="min-w-[280px]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm sm:text-base">Payroll Summary (Last 4 Periods)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {payrollSummary && payrollSummary.length > 0 ? (
+                <ChartContainer config={chartConfig} className="h-[180px] sm:h-[220px] w-full">
+                  <BarChart data={payrollSummary} margin={{ left: -10, right: 10, top: 5, bottom: 5 }}>
+                    <XAxis 
+                      dataKey="period" 
+                      tick={{ fontSize: 8 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      tickFormatter={(value) => `₱${value}K`}
+                      tick={{ fontSize: 9 }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={40}
+                    />
+                    <ChartTooltip
+                      content={<ChartTooltipContent />}
+                      formatter={(value: number) => [`₱${value.toFixed(0)}K`, 'Total']}
+                    />
+                    <Bar dataKey="total" fill="hsl(var(--chart-4))" radius={4} />
+                  </BarChart>
+                </ChartContainer>
+              ) : (
+                <div className="h-[180px] sm:h-[220px] flex items-center justify-center text-muted-foreground text-sm">
+                  No payroll data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Activity Section */}
