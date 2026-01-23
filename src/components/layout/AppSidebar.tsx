@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 // Navigation items with permission keys
+// IMPORTANT: Include 'employee' in roles for all pages that should be permission-configurable
 const navigationItems: { 
   title: string; 
   url: string; 
@@ -50,18 +51,18 @@ const navigationItems: {
   external?: boolean;
 }[] = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_dashboard' },
-  { title: 'Employees', url: '/employees', icon: Users, roles: ['hr_admin', 'branch_manager'], permissionKey: 'page_employees' },
-  { title: 'Positions', url: '/positions', icon: Briefcase, roles: ['hr_admin'], permissionKey: 'page_positions' },
-  { title: 'Branches', url: '/branches', icon: Building2, roles: ['hr_admin'], permissionKey: 'page_branches' },
-  { title: 'Time Schedule', url: '/time-schedule', icon: CalendarClock, roles: ['hr_admin'], permissionKey: 'page_time_schedule' },
+  { title: 'Employees', url: '/employees', icon: Users, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_employees' },
+  { title: 'Positions', url: '/positions', icon: Briefcase, roles: ['hr_admin', 'employee'], permissionKey: 'page_positions' },
+  { title: 'Branches', url: '/branches', icon: Building2, roles: ['hr_admin', 'employee'], permissionKey: 'page_branches' },
+  { title: 'Time Schedule', url: '/time-schedule', icon: CalendarClock, roles: ['hr_admin', 'employee'], permissionKey: 'page_time_schedule' },
   { title: 'DTR', url: '/dtr', icon: ClipboardList, roles: ['employee'], permissionKey: 'page_dtr' },
   { title: 'My Attendance', url: '/my-attendance', icon: IdCard, roles: ['employee'], permissionKey: 'page_my_attendance' },
   { title: 'Attendance Terminal', url: '/attendance-terminal', icon: MonitorSmartphone, roles: ['hr_admin'], external: true },
-  { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager'], permissionKey: 'page_attendance' },
+  { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_attendance' },
   { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_leaves' },
   { title: 'Payroll', url: '/payroll', icon: DollarSign, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_payroll' },
-  { title: 'Reports', url: '/reports', icon: FileText, roles: ['hr_admin', 'branch_manager'], permissionKey: 'page_reports' },
-  { title: 'Settings', url: '/settings', icon: Settings, roles: ['hr_admin'], permissionKey: 'page_settings' },
+  { title: 'Reports', url: '/reports', icon: FileText, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_reports' },
+  { title: 'Settings', url: '/settings', icon: Settings, roles: ['hr_admin', 'employee'], permissionKey: 'page_settings' },
 ];
 
 export function AppSidebar() {
@@ -76,28 +77,39 @@ export function AppSidebar() {
     // Must have a role to see anything
     if (!role) return false;
     
-    // Check if item is for this role
-    if (!item.roles.includes(role)) return false;
-    
     // HR Admin always has full access - no permission checks needed
-    if (role === 'hr_admin') return true;
+    if (role === 'hr_admin') return item.roles.includes('hr_admin');
     
     // For external links (like attendance terminal), just check role
-    if (item.external) return true;
+    if (item.external) return item.roles.includes(role);
+    
+    // If role is not in the allowed roles at all, deny access
+    if (!item.roles.includes(role)) return false;
     
     // If no permission key defined, fall back to role check
     if (!item.permissionKey) return true;
     
-    // While loading permissions, show items based on role only
-    if (permissionsLoading || !permissions) return true;
+    // While loading permissions, hide permission-gated items for non-admin roles
+    if (permissionsLoading || !permissions) {
+      // For employee role, only show items that are employee-specific (like DTR, My Attendance)
+      if (role === 'employee') {
+        const employeeOnlyPages = ['page_dashboard', 'page_dtr', 'page_my_attendance', 'page_leaves', 'page_payroll'];
+        return employeeOnlyPages.includes(item.permissionKey);
+      }
+      return true;
+    }
     
     // Check if permission is enabled in the database
     const permission = permissions.find(p => p.permission_key === item.permissionKey);
     
-    // If no permission record exists, default to showing (for backwards compatibility)
-    if (!permission) return true;
+    // If permission record exists, use its enabled status
+    if (permission) return permission.enabled;
     
-    return permission.enabled;
+    // If no permission record exists for employee, default to hiding (security-first)
+    if (role === 'employee') return false;
+    
+    // For other roles, default to showing (backwards compatibility)
+    return true;
   });
 
   const getInitials = () => {

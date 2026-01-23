@@ -201,3 +201,41 @@
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-primary/50;
 }
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-hide,
+  .page-container > *:not(.print-dtr),
+  header,
+  nav,
+  aside,
+  footer,
+  .sidebar,
+  button:not(.print-button) {
+    display: none !important;
+  }
+
+  .print-dtr {
+    display: block !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: auto;
+    padding: 20mm;
+    margin: 0;
+    background: white !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+}

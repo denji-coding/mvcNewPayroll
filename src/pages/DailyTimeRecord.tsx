@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, Clock, AlertCircle, Calendar } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, getDaysInMonth, eachDayOfInterval, isWeekend } from 'date-fns';
+import { FileText, Clock, AlertCircle, Calendar, Printer } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend } from 'date-fns';
+import { PrintableDTR } from '@/components/dtr/PrintableDTR';
 
 const months = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -130,9 +132,23 @@ export default function DailyTimeRecord() {
     );
   }
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="page-container">
-      <div className="page-header">
+      {/* Printable DTR - Hidden on screen, visible when printing */}
+      <PrintableDTR
+        employee={employee}
+        daysInMonth={daysInMonth}
+        attendanceMap={attendanceMap}
+        summary={summary}
+        month={months[selectedMonth]}
+        year={selectedYear}
+      />
+
+      <div className="page-header print-hide">
         <div>
           <h1 className="page-title flex items-center gap-2">
             <FileText className="h-6 w-6" />
@@ -142,10 +158,14 @@ export default function DailyTimeRecord() {
             View your attendance records by month
           </p>
         </div>
+        <Button onClick={handlePrint} className="print-hide">
+          <Printer className="h-4 w-4 mr-2" />
+          Print DTR
+        </Button>
       </div>
 
       {/* Employee Info Card */}
-      <Card className="mb-6">
+      <Card className="mb-6 print-hide">
         <CardContent className="pt-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
@@ -169,7 +189,7 @@ export default function DailyTimeRecord() {
       </Card>
 
       {/* Filters */}
-      <Card className="mb-6">
+      <Card className="mb-6 print-hide">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Calendar className="h-4 w-4" />
@@ -208,7 +228,7 @@ export default function DailyTimeRecord() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 print-hide">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
@@ -248,7 +268,7 @@ export default function DailyTimeRecord() {
       </div>
 
       {/* DTR Table */}
-      <Card>
+      <Card className="print-hide">
         <CardHeader>
           <CardTitle>
             {months[selectedMonth]} {selectedYear} Records
