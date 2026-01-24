@@ -62,57 +62,55 @@ export function PrintableDTR({
   return (
     // Note: Using explicit black/white colors intentionally for print output
     // Print stylesheets require fixed colors that work on paper
-    <div className="hidden print:block print-dtr bg-white text-black p-8 font-serif">
+    <div className="hidden print:block print-dtr bg-white text-black font-serif" style={{ 
+      width: '210mm', 
+      minHeight: '297mm',
+      padding: '8mm 10mm',
+      boxSizing: 'border-box',
+      fontSize: '9pt'
+    }}>
       {/* Header */}
-      <div className="text-center mb-6">
-        <h1 className="text-xl font-bold uppercase tracking-wide">Daily Time Record</h1>
-        <p className="text-sm mt-1">Migrants Venture Corporation</p>
+      <div className="text-center mb-3">
+        <h1 className="text-base font-bold uppercase tracking-wide">Daily Time Record</h1>
+        <p className="text-xs mt-0.5">Migrants Venture Corporation</p>
       </div>
 
       {/* Employee Info */}
-      <div className="grid grid-cols-2 gap-4 mb-6 text-sm border-b pb-4">
-        <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-3 text-xs border-b pb-2">
+        <div className="flex gap-1">
           <span className="font-semibold">Name:</span>
           <span className="border-b border-black flex-1">{employee.first_name} {employee.last_name}</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <span className="font-semibold">Employee ID:</span>
           <span className="border-b border-black flex-1">{employee.employee_id}</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <span className="font-semibold">Position:</span>
           <span className="border-b border-black flex-1">{employee.position}</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <span className="font-semibold">Department:</span>
           <span className="border-b border-black flex-1">{employee.department || 'N/A'}</span>
         </div>
-        <div className="flex gap-2 col-span-2">
+        <div className="flex gap-1 col-span-2">
           <span className="font-semibold">Period:</span>
-          <span className="border-b border-black flex-1">{month} {year}</span>
+          <span>{month} {year}</span>
         </div>
       </div>
 
-      {/* DTR Table */}
-      <table className="w-full border-collapse text-xs mb-6">
+      {/* DTR Table - Compact for single page */}
+      <table className="w-full border-collapse mb-3" style={{ fontSize: '8pt' }}>
         <thead>
-          <tr className="bg-gray-100">
-            <th className="border border-black p-1 w-12">Date</th>
-            <th className="border border-black p-1 w-10">Day</th>
-            <th className="border border-black p-1" colSpan={2}>Morning</th>
-            <th className="border border-black p-1" colSpan={2}>Afternoon</th>
-            <th className="border border-black p-1 w-12">Hours</th>
-            <th className="border border-black p-1">Remarks</th>
-          </tr>
-          <tr className="bg-gray-50">
-            <th className="border border-black p-1"></th>
-            <th className="border border-black p-1"></th>
-            <th className="border border-black p-1 w-16">In</th>
-            <th className="border border-black p-1 w-16">Out</th>
-            <th className="border border-black p-1 w-16">In</th>
-            <th className="border border-black p-1 w-16">Out</th>
-            <th className="border border-black p-1"></th>
-            <th className="border border-black p-1"></th>
+          <tr style={{ backgroundColor: '#f3f4f6' }}>
+            <th className="border border-black px-1 py-0.5" style={{ width: '28px' }}>Date</th>
+            <th className="border border-black px-1 py-0.5" style={{ width: '28px' }}>Day</th>
+            <th className="border border-black px-1 py-0.5" style={{ width: '52px' }}>AM In</th>
+            <th className="border border-black px-1 py-0.5" style={{ width: '52px' }}>AM Out</th>
+            <th className="border border-black px-1 py-0.5" style={{ width: '52px' }}>PM In</th>
+            <th className="border border-black px-1 py-0.5" style={{ width: '52px' }}>PM Out</th>
+            <th className="border border-black px-1 py-0.5" style={{ width: '36px' }}>Hours</th>
+            <th className="border border-black px-1 py-0.5">Remarks</th>
           </tr>
         </thead>
         <tbody>
@@ -123,17 +121,17 @@ export function PrintableDTR({
             const isFuture = day > new Date();
 
             return (
-              <tr key={dateStr} className={isWeekendDay ? 'bg-gray-50' : ''}>
-                <td className="border border-black p-1 text-center">{format(day, 'dd')}</td>
-                <td className="border border-black p-1 text-center">{format(day, 'EEE')}</td>
-                <td className="border border-black p-1 text-center">{formatTime(record?.morning_in || null)}</td>
-                <td className="border border-black p-1 text-center">{formatTime(record?.morning_out || null)}</td>
-                <td className="border border-black p-1 text-center">{formatTime(record?.afternoon_in || null)}</td>
-                <td className="border border-black p-1 text-center">{formatTime(record?.afternoon_out || null)}</td>
-                <td className="border border-black p-1 text-center">
-                  {record?.hours_worked ? record.hours_worked.toFixed(2) : ''}
+              <tr key={dateStr} style={{ backgroundColor: isWeekendDay ? '#f9fafb' : 'white' }}>
+                <td className="border border-black px-1 py-0 text-center">{format(day, 'dd')}</td>
+                <td className="border border-black px-1 py-0 text-center">{format(day, 'EEE')}</td>
+                <td className="border border-black px-1 py-0 text-center" style={{ fontSize: '7pt' }}>{formatTime(record?.morning_in || null)}</td>
+                <td className="border border-black px-1 py-0 text-center" style={{ fontSize: '7pt' }}>{formatTime(record?.morning_out || null)}</td>
+                <td className="border border-black px-1 py-0 text-center" style={{ fontSize: '7pt' }}>{formatTime(record?.afternoon_in || null)}</td>
+                <td className="border border-black px-1 py-0 text-center" style={{ fontSize: '7pt' }}>{formatTime(record?.afternoon_out || null)}</td>
+                <td className="border border-black px-1 py-0 text-center">
+                  {record?.hours_worked ? record.hours_worked.toFixed(1) : ''}
                 </td>
-                <td className="border border-black p-1 text-center text-[10px]">
+                <td className="border border-black px-1 py-0 text-center" style={{ fontSize: '7pt' }}>
                   {getRemarks(record, isWeekendDay, isFuture)}
                 </td>
               </tr>
@@ -142,42 +140,42 @@ export function PrintableDTR({
         </tbody>
       </table>
 
-      {/* Summary */}
-      <div className="grid grid-cols-4 gap-4 text-sm mb-8 p-3 border border-black">
+      {/* Summary - Compact */}
+      <div className="grid grid-cols-4 gap-2 text-xs mb-4 p-2 border border-black">
         <div className="text-center">
-          <p className="font-semibold">Days Worked</p>
-          <p className="text-lg">{summary.daysWorked}</p>
+          <p className="font-semibold text-xs">Days Worked</p>
+          <p className="text-sm font-bold">{summary.daysWorked}</p>
         </div>
         <div className="text-center">
-          <p className="font-semibold">Total Hours</p>
-          <p className="text-lg">{summary.totalHours.toFixed(1)}</p>
+          <p className="font-semibold text-xs">Total Hours</p>
+          <p className="text-sm font-bold">{summary.totalHours.toFixed(1)}</p>
         </div>
         <div className="text-center">
-          <p className="font-semibold">Late Days</p>
-          <p className="text-lg">{summary.lateDays}</p>
+          <p className="font-semibold text-xs">Late Days</p>
+          <p className="text-sm font-bold">{summary.lateDays}</p>
         </div>
         <div className="text-center">
-          <p className="font-semibold">Absent Days</p>
-          <p className="text-lg">{summary.absentDays}</p>
+          <p className="font-semibold text-xs">Absent Days</p>
+          <p className="text-sm font-bold">{summary.absentDays}</p>
         </div>
       </div>
 
-      {/* Signature Lines */}
-      <div className="grid grid-cols-2 gap-16 mt-12 text-sm">
+      {/* Signature Lines - Compact */}
+      <div className="grid grid-cols-2 gap-12 mt-6 text-xs">
         <div className="text-center">
-          <div className="border-b border-black h-8 mb-1"></div>
+          <div className="border-b border-black h-6 mb-1"></div>
           <p className="font-semibold">Employee Signature</p>
-          <p className="text-xs text-gray-600">Date: _________________</p>
+          <p className="text-xs" style={{ color: '#6b7280' }}>Date: _________________</p>
         </div>
         <div className="text-center">
-          <div className="border-b border-black h-8 mb-1"></div>
+          <div className="border-b border-black h-6 mb-1"></div>
           <p className="font-semibold">Verified By (HR)</p>
-          <p className="text-xs text-gray-600">Date: _________________</p>
+          <p className="text-xs" style={{ color: '#6b7280' }}>Date: _________________</p>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="mt-8 text-center text-xs text-gray-500">
+      <div className="mt-4 text-center" style={{ fontSize: '7pt', color: '#6b7280' }}>
         <p>This document is system-generated. Printed on {format(new Date(), 'MMMM dd, yyyy hh:mm a')}</p>
       </div>
     </div>
