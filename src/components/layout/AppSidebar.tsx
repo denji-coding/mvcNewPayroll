@@ -60,6 +60,7 @@ const navigationItems: {
   { title: 'Attendance Terminal', url: '/attendance-terminal', icon: MonitorSmartphone, roles: ['hr_admin'], external: true },
   { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_attendance' },
   { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_leaves' },
+  { title: 'My Payslips', url: '/my-payslips', icon: FileText, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_my_payslips' },
   { title: 'Payroll', url: '/payroll', icon: DollarSign, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_payroll' },
   { title: 'Reports', url: '/reports', icon: FileText, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_reports' },
   { title: 'Settings', url: '/settings', icon: Settings, roles: ['hr_admin', 'employee'], permissionKey: 'page_settings' },

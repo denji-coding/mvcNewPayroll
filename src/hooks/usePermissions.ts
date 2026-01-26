@@ -23,6 +23,7 @@ export const AVAILABLE_PERMISSIONS = [
   { key: 'page_attendance', label: 'Attendance Management', description: 'Access to attendance management page' },
   { key: 'page_leaves', label: 'Leaves', description: 'Access to the leaves page' },
   { key: 'page_payroll', label: 'Payroll', description: 'Access to the payroll page' },
+  { key: 'page_my_payslips', label: 'My Payslips', description: 'View and download personal payslips' },
   { key: 'page_reports', label: 'Reports', description: 'Access to the reports page' },
   { key: 'page_settings', label: 'Settings', description: 'Access to the settings page' },
   { key: 'page_clock_inout', label: 'Clock In/Out', description: 'Access to clock in/out functionality' },

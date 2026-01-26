@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, isWeekend, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import companyLogo from '@/assets/company-logo.png';
 
 interface AttendanceRecord {
   date: string;
@@ -46,13 +47,11 @@ interface GenerateDTRPdfParams {
   };
   month: string;
   year: number;
-  logoUrl?: string;
 }
 
 interface GenerateMultiMonthDTRPdfParams {
   employee: Employee;
   monthsData: MonthData[];
-  logoUrl?: string;
 }
 
 const months = [
@@ -82,21 +81,17 @@ function addMonthPage(
   attendanceMap: Map<string, AttendanceRecord>,
   summary: { daysWorked: number; totalHours: number; lateDays: number; absentDays: number },
   month: string,
-  year: number,
-  logoUrl?: string
+  year: number
 ): void {
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
   let yPos = 15;
 
-  // Logo (if provided)
-  if (logoUrl) {
-    try {
-      doc.addImage(logoUrl, 'PNG', margin, yPos - 5, 25, 25);
-    } catch (e) {
-      // If logo fails to load, continue without it
-      console.warn('Failed to load logo:', e);
-    }
+  // Add company logo
+  try {
+    doc.addImage(companyLogo, 'PNG', margin, yPos - 5, 20, 20);
+  } catch (e) {
+    console.warn('Failed to load logo:', e);
   }
 
   // Header
@@ -249,7 +244,7 @@ function addMonthPage(
 }
 
 export function generateDTRPdf(params: GenerateDTRPdfParams): void {
-  const { employee, daysInMonth, attendanceMap, summary, month, year, logoUrl } = params;
+  const { employee, daysInMonth, attendanceMap, summary, month, year } = params;
   
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -257,14 +252,14 @@ export function generateDTRPdf(params: GenerateDTRPdfParams): void {
     format: 'a4'
   });
 
-  addMonthPage(doc, employee, daysInMonth, attendanceMap, summary, month, year, logoUrl);
+  addMonthPage(doc, employee, daysInMonth, attendanceMap, summary, month, year);
 
   const fileName = `DTR_${employee.last_name}_${employee.first_name}_${month}_${year}.pdf`;
   doc.save(fileName);
 }
 
 export function generateMultiMonthDTRPdf(params: GenerateMultiMonthDTRPdfParams): void {
-  const { employee, monthsData, logoUrl } = params;
+  const { employee, monthsData } = params;
   
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -285,8 +280,7 @@ export function generateMultiMonthDTRPdf(params: GenerateMultiMonthDTRPdfParams)
       monthData.attendanceMap, 
       monthData.summary, 
       monthName, 
-      monthData.year,
-      logoUrl
+      monthData.year
     );
   });
 
