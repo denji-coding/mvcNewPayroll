@@ -9,9 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, Clock, AlertCircle, Calendar, Printer } from 'lucide-react';
+import { FileText, Clock, AlertCircle, Calendar, Printer, Download } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend } from 'date-fns';
 import { PrintableDTR } from '@/components/dtr/PrintableDTR';
+import { generateDTRPdf } from '@/lib/generateDTRPdf';
 
 const months = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -136,6 +137,17 @@ export default function DailyTimeRecord() {
     window.print();
   };
 
+  const handleExportPDF = () => {
+    generateDTRPdf({
+      employee,
+      daysInMonth,
+      attendanceMap,
+      summary,
+      month: months[selectedMonth],
+      year: selectedYear
+    });
+  };
+
   return (
     <div className="page-container">
       {/* Printable DTR - Hidden on screen, visible when printing */}
@@ -158,10 +170,16 @@ export default function DailyTimeRecord() {
             View your attendance records by month
           </p>
         </div>
-        <Button onClick={handlePrint} className="print-hide">
-          <Printer className="h-4 w-4 mr-2" />
-          Print DTR
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handlePrint} variant="outline" className="print-hide">
+            <Printer className="h-4 w-4 mr-2" />
+            Print DTR
+          </Button>
+          <Button onClick={handleExportPDF} className="print-hide">
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+        </div>
       </div>
 
       {/* Employee Info Card */}
