@@ -27,6 +27,7 @@ import TimeSchedule from "./pages/TimeSchedule";
 import Positions from "./pages/Positions";
 import ChangePassword from "./pages/ChangePassword";
 import DailyTimeRecord from "./pages/DailyTimeRecord";
+import MyPayslips from "./pages/MyPayslips";
 
 // Layout
 import AppLayout from "./components/layout/AppLayout";
@@ -111,6 +112,7 @@ function AppRoutes() {
         <Route path="dtr" element={<DailyTimeRecord />} />
         <Route path="time-schedule" element={<TimeSchedule />} />
         <Route path="leaves" element={<Leaves />} />
+        <Route path="my-payslips" element={<MyPayslips />} />
         <Route path="payroll" element={<Payroll />} />
         <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
