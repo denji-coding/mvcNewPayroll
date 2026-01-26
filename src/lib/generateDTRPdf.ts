@@ -1,7 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, isWeekend, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
-import companyLogo from '@/assets/company-logo.png';
 
 interface AttendanceRecord {
   date: string;
@@ -86,13 +85,6 @@ function addMonthPage(
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
   let yPos = 15;
-
-  // Add company logo
-  try {
-    doc.addImage(companyLogo, 'PNG', margin, yPos - 5, 20, 20);
-  } catch (e) {
-    console.warn('Failed to load logo:', e);
-  }
 
   // Header
   doc.setFontSize(14);
