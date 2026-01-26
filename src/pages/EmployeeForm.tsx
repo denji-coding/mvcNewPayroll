@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save } from 'lucide-react';
 import { SalaryAdjustmentsCard } from '@/components/employees/SalaryAdjustmentsCard';
+import { EmployeeAvatarUpload } from '@/components/employees/EmployeeAvatarUpload';
 import { DateInput } from '@/components/ui/date-picker';
 import { PasswordInput } from '@/components/ui/password-input';
 import { usePositions } from '@/hooks/usePositions';
@@ -30,6 +31,7 @@ export default function EmployeeForm() {
     role: 'employee' as 'employee' | 'branch_manager' | 'hr_admin',
     password: '',
     employment_status: 'active' as 'active' | 'inactive' | 'terminated',
+    avatar_url: null as string | null,
   });
 
   useEffect(() => {
@@ -51,6 +53,7 @@ export default function EmployeeForm() {
       date_hired: data.date_hired || '', 
       basic_salary: data.basic_salary?.toString() || '',
       employment_status: (data.employment_status as 'active' | 'inactive' | 'terminated') || 'active',
+      avatar_url: data.avatar_url || null,
     });
   };
 
@@ -118,17 +121,34 @@ export default function EmployeeForm() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
           <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
-            <div><Label>Employee ID *</Label><Input value={form.employee_id} onChange={(e) => updateField('employee_id', e.target.value)} required /></div>
-            <div><Label>First Name *</Label><Input value={form.first_name} onChange={(e) => updateField('first_name', e.target.value)} required /></div>
-            <div><Label>Last Name *</Label><Input value={form.last_name} onChange={(e) => updateField('last_name', e.target.value)} required /></div>
-            <div><Label>Middle Name</Label><Input value={form.middle_name} onChange={(e) => updateField('middle_name', e.target.value)} /></div>
-            <div><Label>Email *</Label><Input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} required /></div>
-            <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => updateField('phone', e.target.value)} /></div>
-            <div><Label>Date of Birth</Label><DateInput value={form.date_of_birth} onChange={(v) => updateField('date_of_birth', v)} /></div>
-            <div><Label>Gender</Label><Select value={form.gender} onValueChange={(v) => updateField('gender', v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select></div>
-            <div><Label>Civil Status</Label><Select value={form.civil_status} onValueChange={(v) => updateField('civil_status', v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="single">Single</SelectItem><SelectItem value="married">Married</SelectItem><SelectItem value="widowed">Widowed</SelectItem></SelectContent></Select></div>
-            <div className="md:col-span-3"><Label>Address</Label><Input value={form.address} onChange={(e) => updateField('address', e.target.value)} /></div>
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Avatar Upload Section */}
+              <div className="flex-shrink-0">
+                <EmployeeAvatarUpload
+                  avatarUrl={form.avatar_url}
+                  gender={form.gender}
+                  employeeId={id || form.employee_id}
+                  firstName={form.first_name}
+                  lastName={form.last_name}
+                  onAvatarChange={(url) => setForm({ ...form, avatar_url: url })}
+                />
+              </div>
+              
+              {/* Personal Info Fields */}
+              <div className="flex-1 grid gap-4 md:grid-cols-3">
+                <div><Label>Employee ID *</Label><Input value={form.employee_id} onChange={(e) => updateField('employee_id', e.target.value)} required /></div>
+                <div><Label>First Name *</Label><Input value={form.first_name} onChange={(e) => updateField('first_name', e.target.value)} required /></div>
+                <div><Label>Last Name *</Label><Input value={form.last_name} onChange={(e) => updateField('last_name', e.target.value)} required /></div>
+                <div><Label>Middle Name</Label><Input value={form.middle_name} onChange={(e) => updateField('middle_name', e.target.value)} /></div>
+                <div><Label>Email *</Label><Input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} required /></div>
+                <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => updateField('phone', e.target.value)} /></div>
+                <div><Label>Date of Birth</Label><DateInput value={form.date_of_birth} onChange={(v) => updateField('date_of_birth', v)} /></div>
+                <div><Label>Gender</Label><Select value={form.gender} onValueChange={(v) => updateField('gender', v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select></div>
+                <div><Label>Civil Status</Label><Select value={form.civil_status} onValueChange={(v) => updateField('civil_status', v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="single">Single</SelectItem><SelectItem value="married">Married</SelectItem><SelectItem value="widowed">Widowed</SelectItem></SelectContent></Select></div>
+                <div className="md:col-span-3"><Label>Address</Label><Input value={form.address} onChange={(e) => updateField('address', e.target.value)} /></div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
