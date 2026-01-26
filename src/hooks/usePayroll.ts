@@ -153,11 +153,26 @@ export function useApprovePayroll() {
         .single();
       
       if (error) throw error;
+      
+      // Send email notifications to employees
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-payslip-emails', {
+          body: { payroll_period_id: periodId },
+        });
+        
+        if (emailError) {
+          console.error('Failed to send payslip emails:', emailError);
+          // Don't throw - approval succeeded, just email failed
+        }
+      } catch (emailErr) {
+        console.error('Error invoking send-payslip-emails:', emailErr);
+      }
+      
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payroll-periods'] });
-      toast.success('Payroll approved');
+      toast.success('Payroll approved and employees notified');
     },
     onError: (error) => {
       toast.error(getSafeErrorMessage(error, 'Failed to approve payroll'));
