@@ -41,30 +41,36 @@ import {
 } from '@/components/ui/dropdown-menu';
 import companyLogo from '@/assets/company-logo.png';
 
-// Navigation items with permission keys
-// IMPORTANT: Include 'employee' in roles for all pages that should be permission-configurable
-const navigationItems: { 
+// Navigation item type
+type NavItem = { 
   title: string; 
   url: string; 
   icon: React.ComponentType<{ className?: string }>; 
   roles: string[]; 
   permissionKey?: PermissionKey;
   external?: boolean;
-}[] = [
+};
+
+// Admin/Management navigation items
+const adminNavigationItems: NavItem[] = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_dashboard' },
   { title: 'Employees', url: '/employees', icon: Users, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_employees' },
   { title: 'Positions', url: '/positions', icon: Briefcase, roles: ['hr_admin', 'employee'], permissionKey: 'page_positions' },
   { title: 'Branches', url: '/branches', icon: Building2, roles: ['hr_admin', 'employee'], permissionKey: 'page_branches' },
   { title: 'Time Schedule', url: '/time-schedule', icon: CalendarClock, roles: ['hr_admin', 'employee'], permissionKey: 'page_time_schedule' },
-  { title: 'DTR', url: '/dtr', icon: ClipboardList, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_dtr' },
-  { title: 'My Attendance', url: '/my-attendance', icon: IdCard, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_my_attendance' },
   { title: 'Attendance Terminal', url: '/attendance-terminal', icon: MonitorSmartphone, roles: ['hr_admin'], external: true },
   { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_attendance' },
   { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_leaves' },
-  { title: 'My Payslips', url: '/my-payslips', icon: FileText, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_my_payslips' },
   { title: 'Payroll', url: '/payroll', icon: DollarSign, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_payroll' },
   { title: 'Reports', url: '/reports', icon: FileText, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_reports' },
   { title: 'Settings', url: '/settings', icon: Settings, roles: ['hr_admin', 'employee'], permissionKey: 'page_settings' },
+];
+
+// Employee Portal navigation items (accessible by all roles for self-service)
+const employeePortalItems: NavItem[] = [
+  { title: 'DTR', url: '/dtr', icon: ClipboardList, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_dtr' },
+  { title: 'My Attendance', url: '/my-attendance', icon: IdCard, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_my_attendance' },
+  { title: 'My Payslips', url: '/my-payslips', icon: FileText, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_my_payslips' },
 ];
 
 export function AppSidebar() {
@@ -74,8 +80,8 @@ export function AppSidebar() {
   const { data: permissions, isLoading: permissionsLoading } = useRolePermissionsByRole(role);
   const collapsed = state === 'collapsed';
 
-  // Filter navigation items based on role and permissions
-  const filteredItems = navigationItems.filter((item) => {
+  // Filter function for navigation items based on role and permissions
+  const filterItems = (items: NavItem[]) => items.filter((item) => {
     // Must have a role to see anything
     if (!role) return false;
     
@@ -95,7 +101,7 @@ export function AppSidebar() {
     if (permissionsLoading || !permissions) {
       // For employee role, only show items that are employee-specific (like DTR, My Attendance)
       if (role === 'employee') {
-        const employeeOnlyPages = ['page_dashboard', 'page_dtr', 'page_my_attendance', 'page_leaves', 'page_payroll'];
+        const employeeOnlyPages = ['page_dashboard', 'page_dtr', 'page_my_attendance', 'page_leaves', 'page_payroll', 'page_my_payslips'];
         return employeeOnlyPages.includes(item.permissionKey);
       }
       return true;
@@ -113,6 +119,9 @@ export function AppSidebar() {
     // For other roles, default to showing (backwards compatibility)
     return true;
   });
+
+  const filteredAdminItems = filterItems(adminNavigationItems);
+  const filteredEmployeePortalItems = filterItems(employeePortalItems);
 
   const getInitials = () => {
     if (profile?.firstName && profile?.lastName) {
@@ -140,30 +149,65 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/60">
-            {!collapsed ? 'Navigation' : ''}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {filteredItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.url}
-                    tooltip={collapsed ? item.title : undefined}
-                  >
-                    {item.external ? (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3"
-                      >
-                        <item.icon className="w-5 h-5" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </a>
-                    ) : (
+        {/* Admin/Management Navigation */}
+        {filteredAdminItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sidebar-foreground/60">
+              {!collapsed ? 'Management' : ''}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredAdminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === item.url}
+                      tooltip={collapsed ? item.title : undefined}
+                    >
+                      {item.external ? (
+                        <a
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3"
+                        >
+                          <item.icon className="w-5 h-5" />
+                          {!collapsed && <span>{item.title}</span>}
+                        </a>
+                      ) : (
+                        <NavLink
+                          to={item.url}
+                          end={item.url === '/'}
+                          className="flex items-center gap-3"
+                          activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
+                        >
+                          <item.icon className="w-5 h-5" />
+                          {!collapsed && <span>{item.title}</span>}
+                        </NavLink>
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Employee Portal Navigation */}
+        {filteredEmployeePortalItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sidebar-foreground/60">
+              {!collapsed ? 'Employee Portal' : ''}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {filteredEmployeePortalItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === item.url}
+                      tooltip={collapsed ? item.title : undefined}
+                    >
                       <NavLink
                         to={item.url}
                         end={item.url === '/'}
@@ -173,13 +217,13 @@ export function AppSidebar() {
                         <item.icon className="w-5 h-5" />
                         {!collapsed && <span>{item.title}</span>}
                       </NavLink>
-                    )}
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-2">
