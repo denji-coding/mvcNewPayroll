@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format, isWeekend } from 'date-fns';
+import { format, isWeekend, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 
 interface AttendanceRecord {
   date: string;
@@ -13,14 +13,29 @@ interface AttendanceRecord {
   late_minutes: number | null;
 }
 
-interface GenerateDTRPdfParams {
-  employee: {
-    first_name: string;
-    last_name: string;
-    employee_id: string;
-    position: string;
-    department: string | null;
+interface Employee {
+  first_name: string;
+  last_name: string;
+  employee_id: string;
+  position: string;
+  department: string | null;
+}
+
+interface MonthData {
+  month: number;
+  year: number;
+  daysInMonth: Date[];
+  attendanceMap: Map<string, AttendanceRecord>;
+  summary: {
+    daysWorked: number;
+    totalHours: number;
+    lateDays: number;
+    absentDays: number;
   };
+}
+
+interface GenerateDTRPdfParams {
+  employee: Employee;
   daysInMonth: Date[];
   attendanceMap: Map<string, AttendanceRecord>;
   summary: {
@@ -31,7 +46,19 @@ interface GenerateDTRPdfParams {
   };
   month: string;
   year: number;
+  logoUrl?: string;
 }
+
+interface GenerateMultiMonthDTRPdfParams {
+  employee: Employee;
+  monthsData: MonthData[];
+  logoUrl?: string;
+}
+
+const months = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 const formatTime = (timestamp: string | null): string => {
   if (!timestamp) return '-';
@@ -48,19 +75,29 @@ const getRemarks = (record: AttendanceRecord | undefined, isWeekendDay: boolean,
   return '-';
 };
 
-export function generateDTRPdf(params: GenerateDTRPdfParams): void {
-  const { employee, daysInMonth, attendanceMap, summary, month, year } = params;
-  
-  // Create A4 portrait document
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4'
-  });
-
+function addMonthPage(
+  doc: jsPDF,
+  employee: Employee,
+  daysInMonth: Date[],
+  attendanceMap: Map<string, AttendanceRecord>,
+  summary: { daysWorked: number; totalHours: number; lateDays: number; absentDays: number },
+  month: string,
+  year: number,
+  logoUrl?: string
+): void {
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
   let yPos = 15;
+
+  // Logo (if provided)
+  if (logoUrl) {
+    try {
+      doc.addImage(logoUrl, 'PNG', margin, yPos - 5, 25, 25);
+    } catch (e) {
+      // If logo fails to load, continue without it
+      console.warn('Failed to load logo:', e);
+    }
+  }
 
   // Header
   doc.setFontSize(14);
@@ -156,7 +193,6 @@ export function generateDTRPdf(params: GenerateDTRPdfParams): void {
     theme: 'grid',
     margin: { left: margin, right: margin },
     didParseCell: function(data) {
-      // Highlight weekend rows
       if (data.section === 'body') {
         const remarks = data.row.raw?.[7];
         if (remarks === 'Weekend') {
@@ -178,6 +214,7 @@ export function generateDTRPdf(params: GenerateDTRPdfParams): void {
   // Summary section
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
   
   const summaryY = yPos;
   const colWidth = (pageWidth - 2 * margin) / 4;
@@ -196,12 +233,10 @@ export function generateDTRPdf(params: GenerateDTRPdfParams): void {
   const leftSignX = margin + 20;
   const rightSignX = pageWidth - margin - signatureWidth - 20;
   
-  // Left signature
   doc.line(leftSignX, yPos, leftSignX + signatureWidth, yPos);
   doc.text('Employee Signature', leftSignX + signatureWidth / 2, yPos + 4, { align: 'center' });
   doc.text('Date: ___________', leftSignX + signatureWidth / 2, yPos + 9, { align: 'center' });
   
-  // Right signature
   doc.line(rightSignX, yPos, rightSignX + signatureWidth, yPos);
   doc.text('Verified By (HR)', rightSignX + signatureWidth / 2, yPos + 4, { align: 'center' });
   doc.text('Date: ___________', rightSignX + signatureWidth / 2, yPos + 9, { align: 'center' });
@@ -211,8 +246,113 @@ export function generateDTRPdf(params: GenerateDTRPdfParams): void {
   doc.setFontSize(7);
   doc.setTextColor(128, 128, 128);
   doc.text(`Generated on: ${format(new Date(), 'MMMM dd, yyyy hh:mm a')}`, pageWidth / 2, yPos, { align: 'center' });
+}
 
-  // Save the PDF
+export function generateDTRPdf(params: GenerateDTRPdfParams): void {
+  const { employee, daysInMonth, attendanceMap, summary, month, year, logoUrl } = params;
+  
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  addMonthPage(doc, employee, daysInMonth, attendanceMap, summary, month, year, logoUrl);
+
   const fileName = `DTR_${employee.last_name}_${employee.first_name}_${month}_${year}.pdf`;
   doc.save(fileName);
+}
+
+export function generateMultiMonthDTRPdf(params: GenerateMultiMonthDTRPdfParams): void {
+  const { employee, monthsData, logoUrl } = params;
+  
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  monthsData.forEach((monthData, index) => {
+    if (index > 0) {
+      doc.addPage();
+    }
+    
+    const monthName = months[monthData.month];
+    addMonthPage(
+      doc, 
+      employee, 
+      monthData.daysInMonth, 
+      monthData.attendanceMap, 
+      monthData.summary, 
+      monthName, 
+      monthData.year,
+      logoUrl
+    );
+  });
+
+  // Generate filename based on date range
+  const firstMonth = monthsData[0];
+  const lastMonth = monthsData[monthsData.length - 1];
+  const startLabel = `${months[firstMonth.month].substring(0, 3)}${firstMonth.year}`;
+  const endLabel = `${months[lastMonth.month].substring(0, 3)}${lastMonth.year}`;
+  
+  const fileName = monthsData.length === 1
+    ? `DTR_${employee.last_name}_${employee.first_name}_${months[firstMonth.month]}_${firstMonth.year}.pdf`
+    : `DTR_${employee.last_name}_${employee.first_name}_${startLabel}-${endLabel}.pdf`;
+  
+  doc.save(fileName);
+}
+
+// Helper to generate months data from date range
+export function generateMonthsFromRange(
+  startMonth: number,
+  startYear: number,
+  endMonth: number,
+  endYear: number
+): { month: number; year: number }[] {
+  const result: { month: number; year: number }[] = [];
+  
+  let currentMonth = startMonth;
+  let currentYear = startYear;
+  
+  while (
+    currentYear < endYear || 
+    (currentYear === endYear && currentMonth <= endMonth)
+  ) {
+    result.push({ month: currentMonth, year: currentYear });
+    
+    currentMonth++;
+    if (currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+  }
+  
+  return result;
+}
+
+export function getDaysInMonth(month: number, year: number): Date[] {
+  const date = new Date(year, month, 1);
+  return eachDayOfInterval({
+    start: startOfMonth(date),
+    end: endOfMonth(date),
+  });
+}
+
+export function calculateSummary(
+  attendance: AttendanceRecord[] | undefined,
+  daysInMonth: Date[]
+): { daysWorked: number; totalHours: number; lateDays: number; absentDays: number } {
+  if (!attendance) return { daysWorked: 0, totalHours: 0, lateDays: 0, absentDays: 0 };
+  
+  const daysWorked = attendance.filter(a => a.status === 'present' || a.status === 'late').length;
+  const totalHours = attendance.reduce((sum, a) => sum + (a.hours_worked || 0), 0);
+  const lateDays = attendance.filter(a => (a.late_minutes || 0) > 0).length;
+  const attendedDates = new Set(attendance.map(a => a.date));
+  const absentDays = daysInMonth.filter(day => {
+    const dateStr = format(day, 'yyyy-MM-dd');
+    return !isWeekend(day) && !attendedDates.has(dateStr) && day <= new Date();
+  }).length;
+
+  return { daysWorked, totalHours, lateDays, absentDays };
 }
