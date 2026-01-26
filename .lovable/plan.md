@@ -1,170 +1,111 @@
 
 
-# Export to PDF Feature for Daily Time Record
+## Implementation Plan: Employee Avatars & Branch Logos
 
-## Overview
+### Overview
+This plan adds avatar display to the employees table and implements a complete logo management system for branches, including upload functionality and table display.
 
-This plan adds a direct PDF export button to the DTR page that generates a downloadable PDF file without opening the browser's print dialog. The PDF will match the same official Philippine DTR format used in the print version.
+---
 
-## Technical Approach
+### Part 1: Display Employee Avatars in Employees Table
 
-**Library Selection**: `jsPDF` with `jspdf-autotable` plugin
+**File: `src/pages/Employees.tsx`**
 
-- **jsPDF**: Core PDF generation library (small, well-maintained, TypeScript support)
-- **jspdf-autotable**: Plugin specifically designed for creating tables in PDFs with automatic pagination and styling
+1. Import the Avatar component and add helper function for default avatars based on gender
+2. Update the table to include an "Avatar" column before "Employee ID"
+3. Display the employee's uploaded photo or default gender-based avatar
+4. Use the existing Dicebear API pattern from `EmployeeAvatarUpload.tsx`
 
-This approach is preferred over alternatives like:
-- `html2canvas` + `jsPDF` (slower, quality issues with scaling)
-- `react-pdf` (more complex, better suited for viewing PDFs)
-- Server-side PDF generation (unnecessary for this use case)
+**Changes:**
+- Add new table column for avatar display
+- Use existing `avatar_url` and `gender` fields from employee data
 
-## Implementation Details
+---
 
-### 1. Install Dependencies
+### Part 2: Branch Logo System
 
-Add the following packages:
-```bash
-jspdf ^2.5.1
-jspdf-autotable ^3.8.2
-```
+#### Step 2.1: Database Migration
 
-### 2. Create PDF Generator Utility
-
-Create a new utility file `src/lib/generateDTRPdf.ts` that:
-- Accepts the same props as `PrintableDTR` (employee, attendance data, summary, month, year)
-- Generates an A4 portrait PDF with:
-  - Company header ("Migrants Venture Corporation")
-  - Employee information section
-  - DTR table with all 31 days using autoTable
-  - Summary statistics
-  - Signature lines for employee and HR
-  - Footer with generation timestamp
-- Returns the jsPDF document for download
-
-### 3. Update DailyTimeRecord Page
-
-Modify `src/pages/DailyTimeRecord.tsx` to:
-- Import the PDF generator utility
-- Add an "Export PDF" button next to the existing "Print DTR" button
-- Implement `handleExportPDF` function that:
-  - Calls the PDF generator
-  - Triggers download with filename: `DTR_[EmployeeName]_[Month]_[Year].pdf`
-
-## PDF Document Layout
+Add a `logo_url` column to the `branches` table and create a new storage bucket for branch logos.
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    DAILY TIME RECORD                             │
-│               Migrants Venture Corporation                       │
-│                                                                  │
-│  Name: John Doe              Employee ID: EMP-001                │
-│  Position: Developer         Department: IT                      │
-│  Period: January 2026                                            │
-├─────────────────────────────────────────────────────────────────┤
-│ Date │ Day │ AM In  │ AM Out │ PM In  │ PM Out │ Hours │ Remarks │
-├──────┼─────┼────────┼────────┼────────┼────────┼───────┼─────────┤
-│ 01   │ Mon │ 08:00  │ 12:00  │ 13:00  │ 17:00  │ 8.0   │         │
-│ 02   │ Tue │ 08:15  │ 12:00  │ 13:00  │ 17:00  │ 7.8   │ Late    │
-│ ...  │     │        │        │        │        │       │         │
-├─────────────────────────────────────────────────────────────────┤
-│ Days Worked: 22  │ Total Hours: 176  │ Late: 3  │ Absent: 1     │
-├─────────────────────────────────────────────────────────────────┤
-│  _____________________          _____________________            │
-│  Employee Signature             Verified By (HR)                 │
-│  Date: ___________              Date: ___________                │
-├─────────────────────────────────────────────────────────────────┤
-│ Generated on: January 26, 2026 10:30 AM                         │
-└─────────────────────────────────────────────────────────────────┘
+SQL Migration:
+├── Add logo_url column to branches table
+├── Create branch-logos storage bucket (public)
+└── Set up RLS policies:
+    ├── Anyone can view logos (SELECT)
+    ├── HR can upload logos (INSERT)
+    ├── HR can update logos (UPDATE)
+    └── HR can delete logos (DELETE)
 ```
 
-## Files to Create/Modify
+#### Step 2.2: Create Branch Logo Upload Component
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/lib/generateDTRPdf.ts` | Create | PDF generation utility using jsPDF + autoTable |
-| `src/pages/DailyTimeRecord.tsx` | Modify | Add Export PDF button and handler |
-| `package.json` | Modify | Add jspdf and jspdf-autotable dependencies |
+**New File: `src/components/branches/BranchLogoUpload.tsx`**
 
-## Button UI Design
+Create a reusable component similar to `EmployeeAvatarUpload` with:
+- Default building/branch icon when no logo is uploaded
+- File validation (type: JPG, PNG, WebP; size: max 2MB)
+- Upload to `branch-logos` storage bucket
+- Display current logo with overlay upload button
+- Remove logo functionality
 
-The Export PDF button will be placed next to the Print button:
+**Default Logo:** Use Lucide `Building2` icon styled as a placeholder
 
-```tsx
-<div className="flex gap-2">
-  <Button onClick={handlePrint} variant="outline">
-    <Printer className="h-4 w-4 mr-2" />
-    Print DTR
-  </Button>
-  <Button onClick={handleExportPDF}>
-    <Download className="h-4 w-4 mr-2" />
-    Export PDF
-  </Button>
-</div>
+#### Step 2.3: Update Branches Page
+
+**File: `src/pages/Branches.tsx`**
+
+1. **Form State:** Add `logo_url` to the form state
+2. **Branch Interface:** Add `logo_url` to `BranchWithCounts` interface
+3. **Dialog Form:** Integrate `BranchLogoUpload` component
+4. **Table Display:** 
+   - Add "Logo" column as the first column
+   - Show uploaded logo or default building icon
+5. **Edit Mode:** Load existing `logo_url` when editing
+
+---
+
+### Technical Details
+
+#### Default Avatars (Employee)
+```text
+Male:   Dicebear avataaars with male styling
+Female: Dicebear avataaars with female styling
+```
+
+#### Default Logo (Branch)
+```text
+Building2 icon from Lucide with muted background styling
+```
+
+#### Storage Buckets
+```text
+employee-avatars (existing) → Employee photos
+branch-logos (new)          → Branch logos
+```
+
+#### File Structure
+```text
+src/
+├── components/
+│   ├── branches/
+│   │   └── BranchLogoUpload.tsx (new)
+│   └── employees/
+│       └── EmployeeAvatarUpload.tsx (existing)
+└── pages/
+    ├── Employees.tsx (update)
+    └── Branches.tsx (update)
 ```
 
 ---
 
-## Technical Details
+### Summary of Changes
 
-### PDF Generator Function Signature
-
-```typescript
-interface GenerateDTRPdfParams {
-  employee: {
-    first_name: string;
-    last_name: string;
-    employee_id: string;
-    position: string;
-    department: string | null;
-  };
-  daysInMonth: Date[];
-  attendanceMap: Map<string, AttendanceRecord>;
-  summary: {
-    daysWorked: number;
-    totalHours: number;
-    lateDays: number;
-    absentDays: number;
-  };
-  month: string;
-  year: number;
-}
-
-function generateDTRPdf(params: GenerateDTRPdfParams): void {
-  // Creates and downloads PDF
-}
-```
-
-### autoTable Configuration
-
-```typescript
-doc.autoTable({
-  startY: 60,
-  head: [['Date', 'Day', 'AM In', 'AM Out', 'PM In', 'PM Out', 'Hours', 'Remarks']],
-  body: tableData,
-  styles: { fontSize: 8, cellPadding: 1.5 },
-  headStyles: { fillColor: [243, 244, 246], textColor: [0, 0, 0] },
-  columnStyles: {
-    0: { cellWidth: 12 },  // Date
-    1: { cellWidth: 12 },  // Day
-    2: { cellWidth: 20 },  // AM In
-    3: { cellWidth: 20 },  // AM Out
-    4: { cellWidth: 20 },  // PM In
-    5: { cellWidth: 20 },  // PM Out
-    6: { cellWidth: 15 },  // Hours
-    7: { cellWidth: 'auto' }  // Remarks
-  },
-  theme: 'grid'
-});
-```
-
-### TypeScript Type Declaration
-
-Since jspdf-autotable extends jsPDF, we need to add the type augmentation:
-
-```typescript
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-
-// The autoTable function adds itself to jsPDF prototype
-```
+| File | Action | Description |
+|------|--------|-------------|
+| Database | Migration | Add `logo_url` to branches, create storage bucket |
+| `BranchLogoUpload.tsx` | Create | New component for logo upload |
+| `Branches.tsx` | Update | Add logo column & upload form |
+| `Employees.tsx` | Update | Add avatar column display |
 
