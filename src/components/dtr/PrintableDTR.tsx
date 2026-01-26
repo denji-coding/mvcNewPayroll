@@ -1,5 +1,4 @@
 import { format, isWeekend } from 'date-fns';
-import companyLogo from '@/assets/company-logo.png';
 
 interface AttendanceRecord {
   date: string;
@@ -70,14 +69,10 @@ export function PrintableDTR({
       boxSizing: 'border-box',
       fontSize: '9pt'
     }}>
-      {/* Header with Logo */}
-      <div className="flex items-start gap-4 mb-3">
-        <img src={companyLogo} alt="Company Logo" className="w-16 h-16 object-contain" />
-        <div className="flex-1 text-center">
-          <h1 className="text-base font-bold uppercase tracking-wide">Daily Time Record</h1>
-          <p className="text-xs mt-0.5">Migrants Venture Corporation</p>
-        </div>
-        <div className="w-16" /> {/* Spacer for centering */}
+      {/* Header */}
+      <div className="text-center mb-3">
+        <h1 className="text-base font-bold uppercase tracking-wide">Daily Time Record</h1>
+        <p className="text-xs mt-0.5">Migrants Venture Corporation</p>
       </div>
 
       {/* Employee Info */}
