@@ -39,6 +39,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import companyLogo from '@/assets/company-logo.png';
 
 // Navigation items with permission keys
 // IMPORTANT: Include 'employee' in roles for all pages that should be permission-configurable
@@ -124,9 +125,11 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-sidebar-primary rounded-lg flex items-center justify-center flex-shrink-0">
-            <Building2 className="w-5 h-5 text-sidebar-primary-foreground" />
-          </div>
+          <img 
+            src={companyLogo} 
+            alt="MVC Corporation" 
+            className="w-10 h-10 object-contain flex-shrink-0"
+          />
           {!collapsed && (
             <div className="flex flex-col min-w-0">
               <span className="font-semibold text-sidebar-foreground truncate">MVC</span>
