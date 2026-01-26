@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useEmployeeAttendance } from '@/hooks/useAttendance';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +8,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { FileText, Clock, AlertCircle, Calendar, Printer, Download } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend } from 'date-fns';
 import { PrintableDTR } from '@/components/dtr/PrintableDTR';
-import { generateDTRPdf } from '@/lib/generateDTRPdf';
+import { 
+  generateDTRPdf, 
+  generateMultiMonthDTRPdf, 
+  generateMonthsFromRange, 
+  getDaysInMonth, 
+  calculateSummary 
+} from '@/lib/generateDTRPdf';
+import { toast } from 'sonner';
 
 const months = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -26,6 +34,11 @@ export default function DailyTimeRecord() {
   const { user } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  
+  // Date range mode
+  const [isRangeMode, setIsRangeMode] = useState(false);
+  const [endMonth, setEndMonth] = useState(new Date().getMonth());
+  const [endYear, setEndYear] = useState(currentYear);
 
   // Get employee ID from user
   const { data: employee, isLoading: employeeLoading } = useQuery({
@@ -43,7 +56,7 @@ export default function DailyTimeRecord() {
     enabled: !!user?.id,
   });
 
-  // Calculate date range for selected month
+  // Calculate date range for selected month (for display)
   const { startDate, endDate } = useMemo(() => {
     const date = new Date(selectedYear, selectedMonth, 1);
     return {
@@ -52,12 +65,23 @@ export default function DailyTimeRecord() {
     };
   }, [selectedMonth, selectedYear]);
 
-  // Fetch attendance for the month
-  const { data: attendance, isLoading: attendanceLoading } = useEmployeeAttendance(
-    employee?.id,
-    startDate,
-    endDate
-  );
+  // Fetch attendance for the displayed month
+  const { data: attendance, isLoading: attendanceLoading } = useQuery({
+    queryKey: ['employee-attendance', employee?.id, startDate, endDate],
+    queryFn: async () => {
+      if (!employee?.id) return null;
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('employee_id', employee.id)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!employee?.id,
+  });
 
   // Create a map of attendance by date
   const attendanceMap = useMemo(() => {
@@ -78,7 +102,6 @@ export default function DailyTimeRecord() {
   const summary = useMemo(() => {
     if (!attendance) return { daysWorked: 0, totalHours: 0, lateDays: 0, absentDays: 0 };
     
-    const workingDays = daysInMonth.filter(day => !isWeekend(day)).length;
     const daysWorked = attendance.filter(a => a.status === 'present' || a.status === 'late').length;
     const totalHours = attendance.reduce((sum, a) => sum + (a.hours_worked || 0), 0);
     const lateDays = attendance.filter(a => (a.late_minutes || 0) > 0).length;
@@ -88,8 +111,16 @@ export default function DailyTimeRecord() {
       return !isWeekend(day) && !attendedDates.has(dateStr) && day <= new Date();
     }).length;
 
-    return { daysWorked, totalHours, lateDays, absentDays, workingDays };
+    return { daysWorked, totalHours, lateDays, absentDays };
   }, [attendance, daysInMonth]);
+
+  // Validate date range
+  const isValidRange = useMemo(() => {
+    if (!isRangeMode) return true;
+    if (endYear < selectedYear) return false;
+    if (endYear === selectedYear && endMonth < selectedMonth) return false;
+    return true;
+  }, [isRangeMode, selectedMonth, selectedYear, endMonth, endYear]);
 
   const formatTime = (timestamp: string | null) => {
     if (!timestamp) return '-';
@@ -137,17 +168,70 @@ export default function DailyTimeRecord() {
     window.print();
   };
 
-  const handleExportPDF = () => {
-    generateDTRPdf({
-      employee,
-      daysInMonth,
-      attendanceMap,
-      summary,
-      month: months[selectedMonth],
-      year: selectedYear
-    });
-  };
+  const handleExportPDF = async () => {
+    if (!isRangeMode) {
+      // Single month export
+      generateDTRPdf({
+        employee,
+        daysInMonth,
+        attendanceMap,
+        summary,
+        month: months[selectedMonth],
+        year: selectedYear
+      });
+    } else {
+      // Multi-month export
+      const monthsList = generateMonthsFromRange(selectedMonth, selectedYear, endMonth, endYear);
+      
+      if (monthsList.length === 0) {
+        toast.error('Invalid date range. End date must be after start date.');
+        return;
+      }
+      
+      if (monthsList.length > 12) {
+        toast.error('Maximum 12 months can be exported at once.');
+        return;
+      }
 
+      toast.info(`Generating PDF for ${monthsList.length} month(s)...`);
+
+      // Fetch attendance for all months
+      const monthsData = await Promise.all(
+        monthsList.map(async ({ month, year }) => {
+          const days = getDaysInMonth(month, year);
+          const start = format(startOfMonth(new Date(year, month, 1)), 'yyyy-MM-dd');
+          const end = format(endOfMonth(new Date(year, month, 1)), 'yyyy-MM-dd');
+
+          const { data: monthAttendance } = await supabase
+            .from('attendance')
+            .select('*')
+            .eq('employee_id', employee.id)
+            .gte('date', start)
+            .lte('date', end)
+            .order('date', { ascending: true });
+
+          const attMap = new Map(
+            (monthAttendance || []).map(record => [record.date, record])
+          );
+
+          return {
+            month,
+            year,
+            daysInMonth: days,
+            attendanceMap: attMap,
+            summary: calculateSummary(monthAttendance || [], days)
+          };
+        })
+      );
+
+      generateMultiMonthDTRPdf({
+        employee,
+        monthsData
+      });
+
+      toast.success('PDF exported successfully!');
+    }
+  };
   return (
     <div className="page-container">
       {/* Printable DTR - Hidden on screen, visible when printing */}
@@ -175,7 +259,11 @@ export default function DailyTimeRecord() {
             <Printer className="h-4 w-4 mr-2" />
             Print DTR
           </Button>
-          <Button onClick={handleExportPDF} className="print-hide">
+          <Button 
+            onClick={handleExportPDF} 
+            className="print-hide"
+            disabled={!isValidRange}
+          >
             <Download className="h-4 w-4 mr-2" />
             Export PDF
           </Button>
@@ -209,15 +297,30 @@ export default function DailyTimeRecord() {
       {/* Filters */}
       <Card className="mb-6 print-hide">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Select Period
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Select Period
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="range-mode" className="text-sm text-muted-foreground">
+                Date Range
+              </Label>
+              <Switch
+                id="range-mode"
+                checked={isRangeMode}
+                onCheckedChange={setIsRangeMode}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {isRangeMode && (
+              <span className="text-sm text-muted-foreground font-medium">From:</span>
+            )}
             <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Select month" />
               </SelectTrigger>
               <SelectContent>
@@ -230,7 +333,7 @@ export default function DailyTimeRecord() {
             </Select>
 
             <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-              <SelectTrigger className="w-[120px]">
+              <SelectTrigger className="w-[100px]">
                 <SelectValue placeholder="Select year" />
               </SelectTrigger>
               <SelectContent>
@@ -241,7 +344,50 @@ export default function DailyTimeRecord() {
                 ))}
               </SelectContent>
             </Select>
+
+            {isRangeMode && (
+              <>
+                <span className="text-sm text-muted-foreground font-medium">To:</span>
+                <Select value={endMonth.toString()} onValueChange={(v) => setEndMonth(parseInt(v))}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Select month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month, index) => (
+                      <SelectItem key={month} value={index.toString()}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={endYear.toString()} onValueChange={(v) => setEndYear(parseInt(v))}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
           </div>
+          
+          {isRangeMode && !isValidRange && (
+            <p className="text-sm text-destructive mt-2">
+              End date must be after start date.
+            </p>
+          )}
+          
+          {isRangeMode && isValidRange && (
+            <p className="text-sm text-muted-foreground mt-2">
+              PDF will include {generateMonthsFromRange(selectedMonth, selectedYear, endMonth, endYear).length} month(s), each on a separate page.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -332,10 +478,10 @@ export default function DailyTimeRecord() {
                         <TableCell className={isWeekendDay ? 'text-muted-foreground' : ''}>
                           {format(day, 'EEE')}
                         </TableCell>
-                        <TableCell>{formatTime(record?.morning_in)}</TableCell>
-                        <TableCell>{formatTime(record?.morning_out)}</TableCell>
-                        <TableCell>{formatTime(record?.afternoon_in)}</TableCell>
-                        <TableCell>{formatTime(record?.afternoon_out)}</TableCell>
+                        <TableCell>{formatTime(record?.morning_in ?? null)}</TableCell>
+                        <TableCell>{formatTime(record?.morning_out ?? null)}</TableCell>
+                        <TableCell>{formatTime(record?.afternoon_in ?? null)}</TableCell>
+                        <TableCell>{formatTime(record?.afternoon_out ?? null)}</TableCell>
                         <TableCell className="text-right">
                           {record?.hours_worked ? record.hours_worked.toFixed(2) : '-'}
                         </TableCell>
