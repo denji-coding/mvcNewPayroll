@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { CreditCard, User, CheckCircle2, XCircle, Clock, Building2, ArrowLeft, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ export default function AttendanceTerminal() {
   const [employeeIdInput, setEmployeeIdInput] = useState('');
   const rfidInputRef = useRef<HTMLInputElement>(null);
   const manualInputRef = useRef<HTMLInputElement>(null);
+  const autoSubmitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     currentTime,
@@ -28,27 +29,31 @@ export default function AttendanceTerminal() {
   const isTerminalEnabled = settings?.terminal_enabled !== false;
   const isManualEntryAllowed = settings?.allow_manual_entry !== false;
 
-  // Auto-focus RFID input
+  // Auto-focus RFID input with interval to ensure focus is maintained
   useEffect(() => {
-    if (isTerminalEnabled && !result) {
-      if (mode === 'rfid') {
-        rfidInputRef.current?.focus();
-      } else if (mode === 'manual') {
-        manualInputRef.current?.focus();
-      }
+    if (isTerminalEnabled && !result && !isLoading) {
+      const focusInput = () => {
+        if (mode === 'rfid' && rfidInputRef.current && document.activeElement !== rfidInputRef.current) {
+          rfidInputRef.current.focus();
+        } else if (mode === 'manual' && manualInputRef.current && document.activeElement !== manualInputRef.current) {
+          manualInputRef.current.focus();
+        }
+      };
+      
+      focusInput();
+      // Re-focus every 500ms to ensure scanner input is captured
+      const focusInterval = setInterval(focusInput, 500);
+      return () => clearInterval(focusInterval);
     }
-  }, [mode, result, isTerminalEnabled]);
+  }, [mode, result, isTerminalEnabled, isLoading]);
 
   // Clear input when result clears
   useEffect(() => {
     if (!result) {
       setRfidInput('');
       setEmployeeIdInput('');
-      if (mode === 'rfid') {
-        rfidInputRef.current?.focus();
-      }
     }
-  }, [result, mode]);
+  }, [result]);
 
   // Force RFID mode if manual entry is disabled
   useEffect(() => {
@@ -57,22 +62,56 @@ export default function AttendanceTerminal() {
     }
   }, [isManualEntryAllowed, mode]);
 
+  // Handle RFID input change with auto-submit after idle
+  const handleRfidChange = useCallback((value: string) => {
+    setRfidInput(value);
+    
+    // Clear any existing timeout
+    if (autoSubmitTimeoutRef.current) {
+      clearTimeout(autoSubmitTimeoutRef.current);
+    }
+    
+    // Auto-submit after 300ms of no input (for scanners that don't send Enter)
+    if (value.trim() && !isLoading) {
+      autoSubmitTimeoutRef.current = setTimeout(() => {
+        if (value.trim()) {
+          submitRfidAttendance(value);
+        }
+      }, 300);
+    }
+  }, [submitRfidAttendance, isLoading]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSubmitTimeoutRef.current) {
+        clearTimeout(autoSubmitTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleRfidSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (rfidInput.trim()) {
+    if (autoSubmitTimeoutRef.current) {
+      clearTimeout(autoSubmitTimeoutRef.current);
+    }
+    if (rfidInput.trim() && !isLoading) {
       submitRfidAttendance(rfidInput);
     }
   };
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (employeeIdInput.trim()) {
+    if (employeeIdInput.trim() && !isLoading) {
       submitManualAttendance(employeeIdInput);
     }
   };
 
   const handleModeSwitch = () => {
     if (!isManualEntryAllowed) return;
+    if (autoSubmitTimeoutRef.current) {
+      clearTimeout(autoSubmitTimeoutRef.current);
+    }
     clearResult();
     setMode(mode === 'rfid' ? 'manual' : 'rfid');
   };
@@ -306,27 +345,27 @@ export default function AttendanceTerminal() {
                         ref={rfidInputRef}
                         type="text"
                         value={rfidInput}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setRfidInput(value);
-                          // Auto-submit after 300ms of no input (for scanners that don't send Enter)
-                          if (value.trim()) {
-                            const timeoutId = setTimeout(() => {
-                              if (value.trim() && value === rfidInput) {
-                                submitRfidAttendance(value);
-                              }
-                            }, 300);
-                            return () => clearTimeout(timeoutId);
-                          }
-                        }}
+                        onChange={(e) => handleRfidChange(e.target.value)}
                         placeholder="Waiting for card scan..."
-                        className="text-center text-lg h-14 bg-muted/50 caret-transparent"
+                        className="text-center text-lg h-14 bg-muted/50"
                         autoComplete="off"
+                        autoFocus
                         disabled={isLoading}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && rfidInput.trim()) {
+                          if (e.key === 'Enter') {
                             e.preventDefault();
-                            submitRfidAttendance(rfidInput);
+                            if (autoSubmitTimeoutRef.current) {
+                              clearTimeout(autoSubmitTimeoutRef.current);
+                            }
+                            if (rfidInput.trim() && !isLoading) {
+                              submitRfidAttendance(rfidInput);
+                            }
+                          }
+                        }}
+                        onBlur={() => {
+                          // Re-focus immediately when focus is lost
+                          if (mode === 'rfid' && !result && !isLoading) {
+                            setTimeout(() => rfidInputRef.current?.focus(), 100);
                           }
                         }}
                       />
