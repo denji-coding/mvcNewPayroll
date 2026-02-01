@@ -3,15 +3,16 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Edit, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, RotateCcw, Eye } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { usePagination } from '@/hooks/usePagination';
 import { TablePagination } from '@/components/TablePagination';
 import { useAuth } from '@/hooks/useAuth';
+import { EmployeeAvatar } from '@/components/employees/EmployeeAvatar';
 
 export default function Employees() {
   const { role } = useAuth();
@@ -130,6 +131,7 @@ export default function Employees() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12"></TableHead>
                       <TableHead>Employee ID</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Position</TableHead>
@@ -141,6 +143,14 @@ export default function Employees() {
                   <TableBody>
                     {paginatedItems.map((emp) => (
                       <TableRow key={emp.id}>
+                        <TableCell>
+                          <EmployeeAvatar
+                            firstName={emp.first_name}
+                            lastName={emp.last_name}
+                            avatarUrl={emp.avatar_url}
+                            gender={emp.gender}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium">{emp.employee_id}</TableCell>
                         <TableCell>{emp.first_name} {emp.last_name}</TableCell>
                         <TableCell>{emp.position}</TableCell>
@@ -148,6 +158,9 @@ export default function Employees() {
                         <TableCell>{getStatusBadge(emp.employment_status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" asChild title="View">
+                              <Link to={`/employees/${emp.id}`}><Eye className="h-4 w-4" /></Link>
+                            </Button>
                             {role === 'hr_admin' && (
                               <Button variant="ghost" size="icon" asChild>
                                 <Link to={`/employees/${emp.id}`}><Edit className="h-4 w-4" /></Link>
@@ -211,7 +224,7 @@ export default function Employees() {
                     ))}
                     {paginatedItems.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                           {viewMode === 'active' ? 'No active employees found' : viewMode === 'inactive' ? 'No inactive employees found' : 'No deleted employees'}
                         </TableCell>
                       </TableRow>
