@@ -68,27 +68,26 @@ function computeSSS(monthlySalary: number): { employee: number; employer: number
   return { employee: bracket.ee, employer: bracket.er };
 }
 
-// PhilHealth 2024 - 5% of monthly basic salary (2.5% employee share)
-function computePhilHealth(monthlySalary: number): { employee: number; employer: number } {
-  const rate = 0.05;
+// PhilHealth - configurable rate (default 5% split equally)
+function computePhilHealth(monthlySalary: number, rate: number = 5.0): { employee: number; employer: number } {
+  const rateDecimal = rate / 100;
   const minContribution = 500; // Minimum monthly premium
   const maxContribution = 5000; // Maximum monthly premium (based on 100k ceiling)
   
-  let totalContribution = monthlySalary * rate;
+  let totalContribution = monthlySalary * rateDecimal;
   totalContribution = Math.max(minContribution, Math.min(maxContribution, totalContribution));
   
   const share = totalContribution / 2;
   return { employee: share, employer: share };
 }
 
-// Pag-IBIG 2024 - 2% employee, 2% employer (max 100 each based on 5k ceiling)
-function computePagIBIG(monthlySalary: number): { employee: number; employer: number } {
-  const ceiling = 5000;
-  const rate = 0.02;
-  const maxContribution = 100;
+// Pag-IBIG - configurable rate and ceiling
+function computePagIBIG(monthlySalary: number, employeeRate: number = 2.0, ceiling: number = 5000): { employee: number; employer: number } {
+  const rateDecimal = employeeRate / 100;
+  const maxContribution = ceiling * rateDecimal;
   
   const base = Math.min(monthlySalary, ceiling);
-  const contribution = Math.min(base * rate, maxContribution);
+  const contribution = Math.min(base * rateDecimal, maxContribution);
   
   return { employee: contribution, employer: contribution };
 }
@@ -189,6 +188,23 @@ serve(async (req) => {
       );
     }
 
+    // Get benefit rates from settings
+    const { data: benefitRatesData } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'benefit_rates')
+      .single();
+    
+    const benefitRates = benefitRatesData?.value as { 
+      philhealth_rate?: number; 
+      pagibig_employee_rate?: number; 
+      pagibig_ceiling?: number;
+    } || {};
+    
+    const philhealthRate = benefitRates.philhealth_rate ?? 5.0;
+    const pagibigRate = benefitRates.pagibig_employee_rate ?? 2.0;
+    const pagibigCeiling = benefitRates.pagibig_ceiling ?? 5000;
+
     // Get employees
     let employeesQuery = supabase
       .from('employees')
@@ -229,13 +245,6 @@ serve(async (req) => {
         .eq('employee_id', employee.id)
         .eq('is_recurring', true);
 
-      // Get active loans
-      const { data: loans } = await supabase
-        .from('loans')
-        .select('*')
-        .eq('employee_id', employee.id)
-        .eq('status', 'active');
-
       // Calculate pay components
       const dailyRate = employee.basic_salary / 22; // Assuming 22 working days per month
       const hourlyRate = dailyRate / 8;
@@ -256,10 +265,10 @@ serve(async (req) => {
       // Monthly equivalent for contribution calculations
       const monthlyGross = grossPay * 2; // Semi-monthly payroll
 
-      // Government contributions (employee share only)
+      // Government contributions (employee share only) - using configurable rates
       const sss = computeSSS(monthlyGross);
-      const philhealth = computePhilHealth(monthlyGross);
-      const pagibig = computePagIBIG(monthlyGross);
+      const philhealth = computePhilHealth(monthlyGross, philhealthRate);
+      const pagibig = computePagIBIG(monthlyGross, pagibigRate, pagibigCeiling);
 
       // For semi-monthly, divide by 2
       const sssContribution = sss.employee / 2;
@@ -270,23 +279,15 @@ serve(async (req) => {
       const taxableIncome = grossPay - sssContribution - philhealthContribution - pagibigContribution;
       const withholdingTax = computeWithholdingTax(taxableIncome * 2) / 2; // Monthly tax / 2
 
-      // Loan deductions
-      let loanDeductions = 0;
-      const deductionsBreakdown: Record<string, number> = {};
-      loans?.forEach(loan => {
-        const deduction = parseFloat(loan.monthly_amortization) / 2; // Semi-monthly
-        loanDeductions += deduction;
-        deductionsBreakdown[loan.loan_type] = deduction;
-      });
-
       // Other deductions from adjustments
       let otherDeductions = 0;
+      const deductionsBreakdown: Record<string, number> = {};
       adjustments?.filter(a => a.salary_components?.type === 'deduction').forEach(adj => {
         otherDeductions += parseFloat(adj.amount);
         deductionsBreakdown[adj.salary_components.name] = parseFloat(adj.amount);
       });
 
-      const totalDeductions = sssContribution + philhealthContribution + pagibigContribution + withholdingTax + loanDeductions + otherDeductions;
+      const totalDeductions = sssContribution + philhealthContribution + pagibigContribution + withholdingTax + otherDeductions;
       const netPay = grossPay - totalDeductions;
 
       // Create or update payroll record
@@ -304,7 +305,7 @@ serve(async (req) => {
         philhealth_contribution: Math.round(philhealthContribution * 100) / 100,
         pagibig_contribution: Math.round(pagibigContribution * 100) / 100,
         withholding_tax: Math.round(withholdingTax * 100) / 100,
-        other_deductions: Math.round((loanDeductions + otherDeductions) * 100) / 100,
+        other_deductions: Math.round(otherDeductions * 100) / 100,
         total_deductions: Math.round(totalDeductions * 100) / 100,
         net_pay: Math.round(netPay * 100) / 100,
         allowances_breakdown: allowancesBreakdown,

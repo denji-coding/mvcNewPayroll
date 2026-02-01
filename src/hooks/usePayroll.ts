@@ -195,25 +195,6 @@ export function useSalaryComponents() {
   });
 }
 
-export function useEmployeeLoans(employeeId?: string) {
-  return useQuery({
-    queryKey: ['employee-loans', employeeId],
-    queryFn: async () => {
-      if (!employeeId) return [];
-      
-      const { data, error } = await supabase
-        .from('loans')
-        .select('*')
-        .eq('employee_id', employeeId)
-        .order('start_date', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!employeeId,
-  });
-}
-
 export function useDeletePayrollPeriod() {
   const queryClient = useQueryClient();
   

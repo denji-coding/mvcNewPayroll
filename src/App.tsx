@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
+import companyLogo from "@/assets/company-logo.png";
 
 // Pages
 import Auth from "./pages/Auth";
@@ -41,7 +42,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/20"></div>
+          <img src={companyLogo} alt="Company Logo" className="w-20 h-20 object-contain" />
           <div className="text-muted-foreground">Loading...</div>
         </div>
       </div>
@@ -62,7 +63,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/20"></div>
+          <img src={companyLogo} alt="Company Logo" className="w-20 h-20 object-contain" />
           <div className="text-muted-foreground">Loading...</div>
         </div>
       </div>

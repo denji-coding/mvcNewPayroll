@@ -20,6 +20,7 @@ import { useAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useTogg
 import { useUsersWithRoles, useBranchManagers, useUpdateUserRole, useAssignBranchManager, useRemoveBranchManager } from '@/hooks/useUserRoles';
 import { useTerminalSettings, useUpdateTerminalSettings, TerminalSettings } from '@/hooks/useSettings';
 import { useRolePermissions, useUpdatePermission, AVAILABLE_PERMISSIONS } from '@/hooks/usePermissions';
+import { useBenefitRates, useUpdateBenefitRates, BenefitRates } from '@/hooks/useBenefitRates';
 import { useTheme } from '@/components/theme-provider';
 import { Database } from '@/integrations/supabase/types';
 
@@ -40,6 +41,7 @@ export default function Settings() {
           <TabsList className="inline-flex w-auto min-w-full lg:w-auto gap-1">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
+            {isHR && <TabsTrigger value="benefits">Benefits</TabsTrigger>}
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             {isHR && <TabsTrigger value="terminal">Terminal</TabsTrigger>}
             {isHR && <TabsTrigger value="holidays">Holidays</TabsTrigger>}
@@ -60,6 +62,12 @@ export default function Settings() {
         <TabsContent value="notifications" className="mt-4 space-y-4">
           <NotificationSettings />
         </TabsContent>
+
+        {isHR && (
+          <TabsContent value="benefits" className="mt-4 space-y-4">
+            <BenefitsSettingsTab />
+          </TabsContent>
+        )}
 
         {isHR && (
           <TabsContent value="terminal" className="mt-4 space-y-4">
@@ -201,6 +209,99 @@ function PayrollSettings() {
           </div>
           <Switch defaultChecked />
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BenefitsSettingsTab() {
+  const { data: rates, isLoading } = useBenefitRates();
+  const updateRates = useUpdateBenefitRates();
+  
+  const [form, setForm] = useState<BenefitRates>({
+    philhealth_rate: 5.0,
+    pagibig_employee_rate: 2.0,
+    pagibig_ceiling: 5000,
+  });
+
+  useEffect(() => {
+    if (rates) {
+      setForm(rates);
+    }
+  }, [rates]);
+
+  const handleSave = () => {
+    updateRates.mutate(form);
+  };
+
+  if (isLoading) {
+    return <Skeleton className="h-64 w-full" />;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Benefits Rate Configuration</CardTitle>
+        <CardDescription>Configure contribution rates for government benefits</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="p-4 bg-muted/50 rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            <strong>Note:</strong> SSS contributions use a standardized bracket table mandated by law and cannot be modified. 
+            Only PhilHealth and Pag-IBIG rates are configurable.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>PhilHealth Rate (%)</Label>
+          <Input
+            type="number"
+            step="0.1"
+            min="0"
+            max="10"
+            value={form.philhealth_rate}
+            onChange={(e) => setForm({ ...form, philhealth_rate: parseFloat(e.target.value) || 0 })}
+            className="max-w-40"
+          />
+          <p className="text-xs text-muted-foreground">
+            Total rate (split equally between employee and employer). Current: {form.philhealth_rate}%
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Pag-IBIG Employee Rate (%)</Label>
+          <Input
+            type="number"
+            step="0.1"
+            min="0"
+            max="5"
+            value={form.pagibig_employee_rate}
+            onChange={(e) => setForm({ ...form, pagibig_employee_rate: parseFloat(e.target.value) || 0 })}
+            className="max-w-40"
+          />
+          <p className="text-xs text-muted-foreground">
+            Employee contribution rate. Current: {form.pagibig_employee_rate}%
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Pag-IBIG Salary Ceiling (₱)</Label>
+          <Input
+            type="number"
+            step="100"
+            min="0"
+            value={form.pagibig_ceiling}
+            onChange={(e) => setForm({ ...form, pagibig_ceiling: parseFloat(e.target.value) || 0 })}
+            className="max-w-40"
+          />
+          <p className="text-xs text-muted-foreground">
+            Maximum salary base for Pag-IBIG computation. Current: ₱{form.pagibig_ceiling.toLocaleString()}
+          </p>
+        </div>
+        
+        <Button onClick={handleSave} disabled={updateRates.isPending}>
+          {updateRates.isPending ? 'Saving...' : 'Save Rates'}
+        </Button>
       </CardContent>
     </Card>
   );
