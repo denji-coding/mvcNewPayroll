@@ -10,13 +10,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Calculator, Plus, Eye, CheckCircle, Edit, Trash2, Banknote, Download } from 'lucide-react';
+import { Calculator, Plus, Eye, CheckCircle, Edit, Trash2, Download } from 'lucide-react';
 import { SalaryCalculator } from '@/components/payroll/SalaryCalculator';
 import { usePayrollPeriods, usePayrollRecords, useCreatePayrollPeriod, useRunPayroll, useApprovePayroll, useDeletePayrollPeriod, useDeletePayrollRecord } from '@/hooks/usePayroll';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useSalaryComponents, useCreateSalaryComponent, useUpdateSalaryComponent, useDeleteSalaryComponent } from '@/hooks/useSalaryComponents';
-import { useLoans, useCreateLoan, useUpdateLoan, useDeleteLoan } from '@/hooks/useLoans';
-import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 
@@ -25,8 +23,6 @@ export default function Payroll() {
   const isHR = role === 'hr_admin';
   const { data: periods, isLoading: periodsLoading } = usePayrollPeriods();
   const { data: components, isLoading: componentsLoading } = useSalaryComponents();
-  const { data: loans, isLoading: loansLoading } = useLoans();
-  const { data: employees } = useEmployees();
   const createPeriod = useCreatePayrollPeriod();
   const runPayroll = useRunPayroll();
   const approvePayroll = useApprovePayroll();
@@ -93,7 +89,6 @@ export default function Payroll() {
             <TabsTrigger value="periods">Payroll Periods</TabsTrigger>
             <TabsTrigger value="records">Payroll Records</TabsTrigger>
             <TabsTrigger value="components">Salary Components</TabsTrigger>
-            <TabsTrigger value="loans">Loans</TabsTrigger>
             {isHR && <TabsTrigger value="calculator">Salary Calculator</TabsTrigger>}
           </TabsList>
         </div>
@@ -208,10 +203,6 @@ export default function Payroll() {
 
         <TabsContent value="components" className="mt-4">
           <SalaryComponentsTab earnings={earnings} deductions={deductions} isLoading={componentsLoading} isHR={isHR} />
-        </TabsContent>
-
-        <TabsContent value="loans" className="mt-4">
-          <LoansTab loans={loans} employees={employees} isLoading={loansLoading} isHR={isHR} formatCurrency={formatCurrency} />
         </TabsContent>
 
         {isHR && (
@@ -362,65 +353,3 @@ function SalaryComponentsTab({ earnings, deductions, isLoading, isHR }: { earnin
   );
 }
 
-function LoansTab({ loans, employees, isLoading, isHR, formatCurrency }: { loans: any; employees: any; isLoading: boolean; isHR: boolean; formatCurrency: (n: number | null) => string }) {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ employee_id: '', loan_type: 'SSS', principal_amount: '', monthly_amortization: '', start_date: '' });
-  const createLoan = useCreateLoan();
-  const deleteLoan = useDeleteLoan();
-
-  const handleSubmit = async () => {
-    await createLoan.mutateAsync({ ...form, principal_amount: parseFloat(form.principal_amount), monthly_amortization: parseFloat(form.monthly_amortization) });
-    setDialogOpen(false);
-    setForm({ employee_id: '', loan_type: 'SSS', principal_amount: '', monthly_amortization: '', start_date: '' });
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div><CardTitle className="flex items-center gap-2"><Banknote className="h-5 w-5" />Loan Management</CardTitle><CardDescription>Manage employee loans</CardDescription></div>
-          {isHR && (
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild><Button className="w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" />Add Loan</Button></DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Add Employee Loan</DialogTitle></DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div><Label>Employee</Label><Select value={form.employee_id} onValueChange={(v) => setForm({ ...form, employee_id: v })}><SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger><SelectContent>{employees?.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.first_name} {e.last_name}</SelectItem>)}</SelectContent></Select></div>
-                  <div><Label>Loan Type</Label><Select value={form.loan_type} onValueChange={(v) => setForm({ ...form, loan_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="SSS">SSS Loan</SelectItem><SelectItem value="Pag-IBIG">Pag-IBIG Loan</SelectItem><SelectItem value="Company">Company Loan</SelectItem></SelectContent></Select></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><Label>Principal Amount</Label><Input type="number" value={form.principal_amount} onChange={(e) => setForm({ ...form, principal_amount: e.target.value })} /></div>
-                    <div><Label>Monthly Amortization</Label><Input type="number" value={form.monthly_amortization} onChange={(e) => setForm({ ...form, monthly_amortization: e.target.value })} /></div>
-                  </div>
-                  <div><Label>Start Date</Label><Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
-                </div>
-                <DialogFooter><Button onClick={handleSubmit} disabled={!form.employee_id || !form.principal_amount}>Create</Button></DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? <Skeleton className="h-40 w-full" /> : !loans?.length ? <p className="text-muted-foreground text-center py-8">No loans</p> : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Type</TableHead><TableHead>Principal</TableHead><TableHead>Monthly</TableHead><TableHead>Balance</TableHead><TableHead>Status</TableHead>{isHR && <TableHead>Actions</TableHead>}</TableRow></TableHeader>
-              <TableBody>
-                {loans.map((l: any) => (
-                  <TableRow key={l.id}>
-                    <TableCell>{l.employee?.first_name} {l.employee?.last_name}</TableCell>
-                    <TableCell>{l.loan_type}</TableCell>
-                    <TableCell>{formatCurrency(l.principal_amount)}</TableCell>
-                    <TableCell>{formatCurrency(l.monthly_amortization)}</TableCell>
-                    <TableCell>{formatCurrency(l.remaining_balance)}</TableCell>
-                    <TableCell><Badge variant={l.status === 'active' ? 'default' : 'secondary'}>{l.status}</Badge></TableCell>
-                    {isHR && <TableCell><Button variant="ghost" size="icon" onClick={() => deleteLoan.mutate(l.id)}><Trash2 className="h-4 w-4" /></Button></TableCell>}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}

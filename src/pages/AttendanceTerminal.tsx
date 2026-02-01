@@ -306,28 +306,28 @@ export default function AttendanceTerminal() {
                         ref={rfidInputRef}
                         type="text"
                         value={rfidInput}
-                        onChange={(e) => setRfidInput(e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setRfidInput(value);
+                          // Auto-submit after 300ms of no input (for scanners that don't send Enter)
+                          if (value.trim()) {
+                            const timeoutId = setTimeout(() => {
+                              if (value.trim() && value === rfidInput) {
+                                submitRfidAttendance(value);
+                              }
+                            }, 300);
+                            return () => clearTimeout(timeoutId);
+                          }
+                        }}
                         placeholder="Waiting for card scan..."
-                        className="text-center text-lg h-14 bg-muted/50 caret-transparent cursor-default"
+                        className="text-center text-lg h-14 bg-muted/50 caret-transparent"
                         autoComplete="off"
                         disabled={isLoading}
-                        readOnly
-                        inputMode="none"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && rfidInput.trim()) {
                             e.preventDefault();
                             submitRfidAttendance(rfidInput);
                           }
-                        }}
-                        onPaste={(e) => {
-                          const pastedText = e.clipboardData.getData('text');
-                          if (pastedText) {
-                            setRfidInput(pastedText);
-                          }
-                        }}
-                        onInput={(e) => {
-                          const target = e.target as HTMLInputElement;
-                          setRfidInput(target.value);
                         }}
                       />
 
