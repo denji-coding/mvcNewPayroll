@@ -55,21 +55,52 @@ export default function Attendance() {
 
   const handleSaveEdit = () => {
     if (!editRecord) return;
-    const morningIn = editForm.morning_in ? `${dateStr}T${editForm.morning_in}:00` : null;
-    const morningOut = editForm.morning_out ? `${dateStr}T${editForm.morning_out}:00` : null;
-    const afternoonIn = editForm.afternoon_in ? `${dateStr}T${editForm.afternoon_in}:00` : null;
-    const afternoonOut = editForm.afternoon_out ? `${dateStr}T${editForm.afternoon_out}:00` : null;
     
-    updateAttendance.mutate({
-      id: editRecord.id,
-      time_in: morningIn,
-      time_out: afternoonOut,
-      morning_in: morningIn,
-      morning_out: morningOut,
-      afternoon_in: afternoonIn,
-      afternoon_out: afternoonOut,
-      remarks: editForm.remarks || null
-    } as any, {
+    // Build update payload with only changed fields
+    const updatePayload: any = { id: editRecord.id };
+    
+    // Helper to check if a field was changed
+    const getOriginalTime = (timestamp: string | null) => {
+      if (!timestamp) return '';
+      try {
+        return format(parseISO(timestamp), "HH:mm");
+      } catch {
+        return '';
+      }
+    };
+    
+    // Only include fields that were explicitly modified
+    const origMorningIn = getOriginalTime(editRecord.morning_in || editRecord.time_in);
+    const origMorningOut = getOriginalTime(editRecord.morning_out);
+    const origAfternoonIn = getOriginalTime(editRecord.afternoon_in);
+    const origAfternoonOut = getOriginalTime(editRecord.afternoon_out || editRecord.time_out);
+    
+    if (editForm.morning_in !== origMorningIn) {
+      const morningIn = editForm.morning_in ? `${dateStr}T${editForm.morning_in}:00` : null;
+      updatePayload.morning_in = morningIn;
+      updatePayload.time_in = morningIn;
+    }
+    
+    if (editForm.morning_out !== origMorningOut) {
+      updatePayload.morning_out = editForm.morning_out ? `${dateStr}T${editForm.morning_out}:00` : null;
+    }
+    
+    if (editForm.afternoon_in !== origAfternoonIn) {
+      updatePayload.afternoon_in = editForm.afternoon_in ? `${dateStr}T${editForm.afternoon_in}:00` : null;
+    }
+    
+    if (editForm.afternoon_out !== origAfternoonOut) {
+      const afternoonOut = editForm.afternoon_out ? `${dateStr}T${editForm.afternoon_out}:00` : null;
+      updatePayload.afternoon_out = afternoonOut;
+      updatePayload.time_out = afternoonOut;
+    }
+    
+    // Always include remarks if changed
+    if (editForm.remarks !== (editRecord.remarks || '')) {
+      updatePayload.remarks = editForm.remarks || null;
+    }
+    
+    updateAttendance.mutate(updatePayload as any, {
       onSuccess: () => setEditRecord(null)
     });
   };

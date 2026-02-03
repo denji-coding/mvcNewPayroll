@@ -13,6 +13,7 @@ import { usePagination } from '@/hooks/usePagination';
 import { TablePagination } from '@/components/TablePagination';
 import { useAuth } from '@/hooks/useAuth';
 import { EmployeeAvatar } from '@/components/employees/EmployeeAvatar';
+import { EmployeeViewModal } from '@/components/employees/EmployeeViewModal';
 
 export default function Employees() {
   const { role } = useAuth();
@@ -20,6 +21,7 @@ export default function Employees() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'active' | 'inactive' | 'deleted'>('active');
+  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
 
   useEffect(() => {
     fetchEmployees();
@@ -158,8 +160,8 @@ export default function Employees() {
                         <TableCell>{getStatusBadge(emp.employment_status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" asChild title="View">
-                              <Link to={`/employees/${emp.id}`}><Eye className="h-4 w-4" /></Link>
+                            <Button variant="ghost" size="icon" title="View" onClick={() => setSelectedEmployee(emp)}>
+                              <Eye className="h-4 w-4" />
                             </Button>
                             {role === 'hr_admin' && (
                               <Button variant="ghost" size="icon" asChild>
@@ -241,6 +243,12 @@ export default function Employees() {
           )}
         </CardContent>
       </Card>
+
+      <EmployeeViewModal
+        employee={selectedEmployee}
+        open={!!selectedEmployee}
+        onClose={() => setSelectedEmployee(null)}
+      />
     </div>
   );
 }

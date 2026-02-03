@@ -238,10 +238,18 @@ export default function MyPayslips() {
                 {payrollRecords.map((record) => {
                   const canDownload = record.payroll_periods.status === 'approved' || 
                                      record.payroll_periods.status === 'paid';
+                  const isManual = (record as any).is_manual;
                   return (
                     <TableRow key={record.id}>
                       <TableCell className="font-medium">
-                        {format(new Date(record.payroll_periods.period_start), 'MMM d')} - {format(new Date(record.payroll_periods.period_end), 'MMM d, yyyy')}
+                        <div className="flex items-center gap-2">
+                          {format(new Date(record.payroll_periods.period_start), 'MMM d')} - {format(new Date(record.payroll_periods.period_end), 'MMM d, yyyy')}
+                          {isManual && (
+                            <Badge variant="outline" className="bg-info/10 text-info border-info/30 text-xs">
+                              Manual
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {format(new Date(record.payroll_periods.pay_date), 'MMM d, yyyy')}

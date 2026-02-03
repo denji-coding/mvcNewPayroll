@@ -707,6 +707,7 @@ export type Database = {
           gross_pay: number | null
           holiday_pay: number | null
           id: string
+          is_manual: boolean | null
           net_pay: number | null
           night_differential: number | null
           other_deductions: number | null
@@ -730,6 +731,7 @@ export type Database = {
           gross_pay?: number | null
           holiday_pay?: number | null
           id?: string
+          is_manual?: boolean | null
           net_pay?: number | null
           night_differential?: number | null
           other_deductions?: number | null
@@ -753,6 +755,7 @@ export type Database = {
           gross_pay?: number | null
           holiday_pay?: number | null
           id?: string
+          is_manual?: boolean | null
           net_pay?: number | null
           night_differential?: number | null
           other_deductions?: number | null

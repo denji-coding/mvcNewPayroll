@@ -248,3 +248,55 @@ export function useDeletePayrollRecord() {
     },
   });
 }
+
+export interface ManualPayrollData {
+  payroll_period_id: string;
+  employee_id: string;
+  basic_pay: number;
+  days_worked: number;
+  overtime_pay: number;
+  holiday_pay: number;
+  night_differential: number;
+  total_allowances: number;
+  sss_contribution: number;
+  philhealth_contribution: number;
+  pagibig_contribution: number;
+  withholding_tax: number;
+  other_deductions: number;
+}
+
+export function useCreateManualPayroll() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: ManualPayrollData) => {
+      const grossPay = data.basic_pay + data.overtime_pay + data.holiday_pay + 
+                       data.night_differential + data.total_allowances;
+      const totalDeductions = data.sss_contribution + data.philhealth_contribution + 
+                              data.pagibig_contribution + data.withholding_tax + data.other_deductions;
+      const netPay = grossPay - totalDeductions;
+      
+      const { data: result, error } = await supabase
+        .from('payroll_records')
+        .insert({
+          ...data,
+          gross_pay: grossPay,
+          total_deductions: totalDeductions,
+          net_pay: netPay,
+          is_manual: true,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-records'] });
+      toast.success('Manual payroll record created');
+    },
+    onError: (error) => {
+      toast.error(getSafeErrorMessage(error, 'Failed to create manual payroll'));
+    },
+  });
+}
