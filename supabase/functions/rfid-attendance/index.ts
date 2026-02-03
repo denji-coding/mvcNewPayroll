@@ -114,6 +114,30 @@ serve(async (req) => {
     const today = now.toISOString().split('T')[0];
     const currentTime = now.toISOString();
 
+    // Check for approved leave
+    const { data: activeLeave } = await supabase
+      .from('leave_requests')
+      .select('id, leave_type, start_date, end_date')
+      .eq('employee_id', employee.id)
+      .eq('status', 'hr_approved')
+      .lte('start_date', today)
+      .gte('end_date', today)
+      .maybeSingle();
+
+    if (activeLeave) {
+      console.log(`Employee ${employee.first_name} ${employee.last_name} is on leave`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Currently on leave',
+          employee_name: `${employee.first_name} ${employee.last_name}`,
+          message: `You are on ${activeLeave.leave_type} leave until ${activeLeave.end_date}. Attendance is not required.`,
+          leave_type: activeLeave.leave_type,
+          leave_end: activeLeave.end_date
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Check if employee has any schedule
     const { data: allSchedules } = await supabase
       .from('employee_schedules')

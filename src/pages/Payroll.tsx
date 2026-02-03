@@ -10,8 +10,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Calculator, Plus, Eye, CheckCircle, Edit, Trash2, Download } from 'lucide-react';
+import { Calculator, Plus, Eye, CheckCircle, Edit, Trash2, Download, FileEdit } from 'lucide-react';
 import { SalaryCalculator } from '@/components/payroll/SalaryCalculator';
+import { ManualPayrollDialog } from '@/components/payroll/ManualPayrollDialog';
 import { usePayrollPeriods, usePayrollRecords, useCreatePayrollPeriod, useRunPayroll, useApprovePayroll, useDeletePayrollPeriod, useDeletePayrollRecord } from '@/hooks/usePayroll';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useSalaryComponents, useCreateSalaryComponent, useUpdateSalaryComponent, useDeleteSalaryComponent } from '@/hooks/useSalaryComponents';
@@ -38,6 +39,7 @@ export default function Payroll() {
   const isPeriodProcessed = selectedPeriodData?.status !== 'draft';
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [manualPayrollOpen, setManualPayrollOpen] = useState(false);
   const [periodForm, setPeriodForm] = useState({ period_start: '', period_end: '', pay_date: '' });
   const [viewPayslip, setViewPayslip] = useState<any>(null);
 
@@ -149,13 +151,27 @@ export default function Payroll() {
                       <p className="text-sm font-medium">Payroll is not yet processed. View and download will be available after processing.</p>
                     </div>
                   )}
+                  {isHR && selectedPeriodData?.status === 'draft' && (
+                    <div className="mb-4">
+                      <Button onClick={() => setManualPayrollOpen(true)}>
+                        <FileEdit className="mr-2 h-4 w-4" /> Add Manual Payroll
+                      </Button>
+                    </div>
+                  )}
                   <Table>
-                    <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Basic</TableHead><TableHead>Gross</TableHead><TableHead>Deductions</TableHead><TableHead>Net Pay</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Employee</TableHead><TableHead>Type</TableHead><TableHead>Basic</TableHead><TableHead>Gross</TableHead><TableHead>Deductions</TableHead><TableHead>Net Pay</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {recordsLoading ? [1,2,3].map(i => <TableRow key={i}>{[1,2,3,4,5,6].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}</TableRow>) :
                        records?.length ? records.map((r: any) => (
                         <TableRow key={r.id}>
                           <TableCell>{r.employees?.first_name} {r.employees?.last_name}</TableCell>
+                          <TableCell>
+                            {r.is_manual ? (
+                              <Badge variant="outline" className="bg-info/10 text-info border-info/30">Manual</Badge>
+                            ) : (
+                              <Badge variant="outline">Computed</Badge>
+                            )}
+                          </TableCell>
                           <TableCell>{formatCurrency(r.basic_pay)}</TableCell>
                           <TableCell>{formatCurrency(r.gross_pay)}</TableCell>
                           <TableCell>{formatCurrency(r.total_deductions)}</TableCell>
@@ -191,7 +207,7 @@ export default function Payroll() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      )) : <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No records</TableCell></TableRow>}
+                      )) : <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No records</TableCell></TableRow>}
                     </TableBody>
                   </Table>
                 </>
@@ -199,6 +215,13 @@ export default function Payroll() {
             </CardContent>
           </Card>
           {viewPayslip && <PayslipDialog record={viewPayslip} onClose={() => setViewPayslip(null)} formatCurrency={formatCurrency} periodStatus={selectedPeriodData?.status} />}
+          {selectedPeriod && (
+            <ManualPayrollDialog
+              periodId={selectedPeriod}
+              open={manualPayrollOpen}
+              onClose={() => setManualPayrollOpen(false)}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="components" className="mt-4">
