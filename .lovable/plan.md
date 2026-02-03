@@ -1,172 +1,195 @@
 
-## Implementation Plan: Multiple Fixes and Features
-
-### Overview
-This plan addresses five items: verifying the My Payslips page, fixing the RFID scanner input, adding the company logo to loading screens, implementing a Benefits Rate configuration feature, and removing the Loans feature.
+## Implementation Plan: Employee View Modal, Attendance Edit Fix, Manual Payroll, and Leave Check
 
 ---
 
-### Part 1: My Payslips Page (Already Implemented)
+### Part 1: Employee View Modal
 
-**Status: Complete**
+**Current State:** The Eye icon navigates to `/employees/${emp.id}` which opens the edit form.
 
-The My Payslips page already exists at `src/pages/MyPayslips.tsx` and is properly configured in the sidebar under "Employee Portal". No changes needed.
+**Solution:** Create a view-only modal that displays all employee information when the Eye icon is clicked.
+
+#### Changes Required:
+
+**File: `src/pages/Employees.tsx`**
+1. Add state for selected employee and modal visibility
+2. Create `EmployeeViewModal` component inside the file
+3. Modify Eye icon to open modal instead of navigating
+4. Display all employee fields in organized sections:
+   - Personal Information (name, email, phone, DOB, gender, civil status, address)
+   - Employment Details (employee ID, position, department, branch, date hired, salary, RFID, status)
+   - Government IDs (SSS, PhilHealth, Pag-IBIG, TIN)
+   - Banking Information (bank name, account number)
+   - Emergency Contact
+
+```text
+Modal Structure:
+├── DialogHeader with employee name and avatar
+├── Personal Information Section
+├── Employment Details Section  
+├── Government IDs Section
+├── Banking Information Section
+└── Emergency Contact Section
+```
 
 ---
 
-### Part 2: Fix RFID Scanner Input
+### Part 2: Fix Attendance Time Edit Bug
 
-**Problem:** The RFID input field uses `readOnly` and `inputMode="none"`, which blocks keyboard input. RFID scanners emulate keyboard input by rapidly typing characters and pressing Enter.
+**Problem:** When editing attendance times, if one field is empty, the update applies incorrect values. The issue is in how the form state is managed - the `handleEdit` function populates the form, but `handleSaveEdit` may be incorrectly sending null values that overwrite existing data.
 
-**File: `src/pages/AttendanceTerminal.tsx`**
+**Root Cause Analysis:**
+Looking at `handleSaveEdit` in `Attendance.tsx` (lines 56-75):
+- The function creates timestamp strings by combining date + time
+- If a field is empty, it sets the value to `null`
+- The problem is that updating with `null` overwrites existing values
 
 **Solution:**
-1. Remove `readOnly` and `inputMode="none"` attributes from the RFID input field
-2. Keep the input focused and capture scanner input via `onChange`
-3. Auto-submit when Enter key is pressed (scanners typically send Enter after card data)
-4. Add a debounce/auto-submit after rapid input stops (backup for scanners that don't send Enter)
-5. Maintain the visual styling that hides the caret for cleaner appearance
+Only include fields in the update payload that were explicitly changed. If a field wasn't edited, don't include it in the update.
 
-**Changes:**
+**File: `src/pages/Attendance.tsx`**
+1. Track which fields were modified during editing
+2. Only send changed fields in the update mutation
+3. Preserve original values for unchanged fields
+
 ```text
-RFID Input Field:
-├── Remove readOnly attribute
-├── Remove inputMode="none" attribute  
-├── Add onChange handler to capture scanner input
-├── Keep onKeyDown for Enter key submission
-├── Add auto-submit timeout (300ms after last character)
-└── Keep visual styling with transparent caret
+Fix Approach:
+├── Store original record values
+├── Track which fields user modified
+├── Build update payload with only changed fields
+└── Preserve existing timestamps for unchanged fields
 ```
 
 ---
 
-### Part 3: Add Company Logo to Loading Screens
+### Part 3: Manual Payroll Feature
 
-**File: `src/App.tsx`**
+**Goal:** Allow HR to manually enter payroll data for individual employees instead of computing from attendance.
 
-**Current State:** Loading screen shows a generic pulsing circle
+#### Step 3.1: Database Schema Update
 
-**Solution:** Replace the placeholder circle with the company logo inside a pulsing animation
+Add `is_manual` column to `payroll_records` table:
 
-**Changes:**
-- Import `companyLogo` from `@/assets/company-logo.png`
-- Replace the generic circle div with the company logo image
-- Keep the pulsing animation for visual feedback
-- Also update the `AttendanceTerminal.tsx` loading state to use the logo
-
----
-
-### Part 4: Benefits Rate Configuration
-
-**New Feature:** Allow HR to configure benefit contribution rates
-
-#### Step 4.1: Database Migration
-
-Create a new settings entry for benefit rates (stored in the existing `settings` table):
-
-```text
-Settings Key: "benefit_rates"
-Default Value: {
-  "philhealth_rate": 5.0,
-  "pagibig_employee_rate": 2.0,
-  "pagibig_employer_rate": 2.0,
-  "pagibig_ceiling": 5000
-}
+```sql
+ALTER TABLE payroll_records 
+ADD COLUMN is_manual boolean DEFAULT false;
 ```
 
-Note: SSS uses a bracket table which is standardized by law, so only PhilHealth and Pag-IBIG rates are configurable.
-
-#### Step 4.2: Create Settings Hook
-
-**New File: `src/hooks/useBenefitRates.ts`**
-
-```text
-Hook Functions:
-├── useBenefitRates() - Fetch current rates
-└── useUpdateBenefitRates() - Update rates (HR only)
-```
-
-#### Step 4.3: Add Benefits Rate Tab to Settings
-
-**File: `src/pages/Settings.tsx`**
-
-Add a new "Benefits" tab in the Settings page for HR Admins to configure:
-- PhilHealth contribution rate (default 5%)
-- Pag-IBIG employee contribution rate (default 2%)
-- Pag-IBIG ceiling amount (default 5000)
-
-```text
-UI Elements:
-├── PhilHealth Rate input (percentage)
-├── Pag-IBIG Employee Rate input (percentage)
-├── Pag-IBIG Salary Ceiling input (currency)
-└── Save button
-```
-
-#### Step 4.4: Update Payroll Computation
-
-**File: `supabase/functions/compute-payroll/index.ts`**
-
-Modify the edge function to:
-1. Fetch benefit rates from the `settings` table
-2. Use configurable rates for PhilHealth and Pag-IBIG calculations
-3. Fall back to default values if no settings exist
-
----
-
-### Part 5: Remove Loan Feature
-
-#### Step 5.1: Update Payroll Computation
-
-**File: `supabase/functions/compute-payroll/index.ts`**
-
-- Remove loan query and loan deduction calculations
-- Remove loan-related deductions from the breakdown
-
-#### Step 5.2: Update Payroll Page
+#### Step 3.2: Create Manual Payroll Dialog
 
 **File: `src/pages/Payroll.tsx`**
 
-- Remove "Loans" tab from TabsList
-- Remove LoansTab component
-- Remove loan-related imports (`useLoans`, `useCreateLoan`, `useDeleteLoan`)
-- Remove loans data fetching
+Add a new dialog for manual payroll entry with fields:
+- Employee selection (dropdown of active employees)
+- Basic Pay
+- Overtime Pay
+- Holiday Pay
+- Night Differential
+- Total Allowances
+- SSS Contribution
+- PhilHealth Contribution
+- Pag-IBIG Contribution
+- Withholding Tax
+- Other Deductions
+- Days Worked
+- Remarks/Notes
 
-#### Step 5.3: Remove Loan Hooks
+The dialog will calculate:
+- Gross Pay = Basic + Overtime + Holiday + Night Diff + Allowances
+- Total Deductions = SSS + PhilHealth + Pag-IBIG + Tax + Other
+- Net Pay = Gross - Deductions
 
-**File: `src/hooks/useLoans.ts`**
-
-- Delete this file entirely
+#### Step 3.3: Add Manual Payroll Hook
 
 **File: `src/hooks/usePayroll.ts`**
 
-- Remove `useEmployeeLoans` function
+Add `useCreateManualPayroll` mutation:
+```typescript
+export function useCreateManualPayroll() {
+  // Insert payroll record with is_manual = true
+}
+```
 
-#### Step 5.4: Database Cleanup (Optional)
+#### Step 3.4: Update Payroll Records Display
 
-**Migration:** Drop the `loans` table from the database (optional - can be done later if there's no data)
+Show "Manual" badge next to payroll records where `is_manual = true`
+
+#### Step 3.5: Update My Payslips Display
+
+**File: `src/pages/MyPayslips.tsx`**
+
+Add indicator showing "Manually Processed" for records with `is_manual = true`
+
+```text
+Manual Payroll Flow:
+├── HR clicks "Add Manual Payroll" button
+├── Selects payroll period and employee
+├── Enters all pay components manually
+├── System calculates gross, deductions, net
+├── Saves with is_manual = true
+└── Badge shows on payroll records and payslips
+```
+
+---
+
+### Part 4: Block Attendance for Employees on Leave
+
+**Goal:** When an employee on approved leave tries to scan their RFID, show a message that they are on leave.
+
+**File: `supabase/functions/rfid-attendance/index.ts`**
+
+Add leave status check after finding the employee:
+
+```typescript
+// After finding employee, check for approved leave
+const { data: activeLeave } = await supabase
+  .from('leave_requests')
+  .select('id, leave_type, start_date, end_date')
+  .eq('employee_id', employee.id)
+  .eq('status', 'hr_approved')
+  .lte('start_date', today)
+  .gte('end_date', today)
+  .single();
+
+if (activeLeave) {
+  return new Response(
+    JSON.stringify({ 
+      error: 'Currently on leave',
+      employee_name: `${employee.first_name} ${employee.last_name}`,
+      message: `You are on ${activeLeave.leave_type} leave until ${activeLeave.end_date}. Attendance is not required.`,
+      leave_type: activeLeave.leave_type,
+      leave_end: activeLeave.end_date
+    }),
+    { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+```
+
+This check happens:
+1. After employee is found and validated
+2. Before checking their schedule
+3. Returns a friendly message with leave type and end date
 
 ---
 
 ### Summary of Changes
 
-| Item | Files Affected | Action |
-|------|----------------|--------|
-| My Payslips | None | Already complete |
-| RFID Scanner | `AttendanceTerminal.tsx` | Fix input handling |
-| Loading Logo | `App.tsx` | Add company logo |
-| Benefits Rate | `Settings.tsx`, new hook, edge function | Add new feature |
-| Remove Loans | `Payroll.tsx`, hooks, edge function | Remove feature |
+| Feature | Files Affected | Type |
+|---------|----------------|------|
+| Employee View Modal | `Employees.tsx` | UI Enhancement |
+| Attendance Edit Fix | `Attendance.tsx` | Bug Fix |
+| Manual Payroll | `Payroll.tsx`, `usePayroll.ts`, `MyPayslips.tsx`, DB migration | New Feature |
+| Leave Check | `rfid-attendance/index.ts` | New Feature |
 
 ---
 
 ### Technical Notes
 
-**RFID Scanner Behavior:**
-Most RFID scanners work by emulating keyboard input - they type the card number character by character very quickly (typically within 50-100ms), then press Enter. The current implementation blocks this by making the input read-only.
+**Attendance Edit Bug:**
+The current code in `handleSaveEdit` creates timestamps like `${dateStr}T${editForm.morning_in}:00` even when the time field is empty, resulting in invalid timestamps. The fix ensures only explicitly changed fields are updated.
 
-**Benefits Rate Storage:**
-Using the existing `settings` table with a JSON value allows flexible storage without schema changes. The edge function can read these settings at payroll computation time.
+**Manual Payroll:**
+The `is_manual` flag allows distinguishing between computed and manually entered payroll records. This is important for auditing and transparency.
 
-**Loan Removal:**
-Removing the loans feature also removes loan deductions from payroll computation. If there are existing loan records in the database, they will remain but no longer affect payroll.
+**Leave Validation:**
+The leave check uses `hr_approved` status (final approval) and checks if today falls within the leave date range. Pending or rejected leaves don't block attendance.
