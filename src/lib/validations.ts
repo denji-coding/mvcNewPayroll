@@ -140,7 +140,7 @@ export const employeeIdInputSchema = z.string()
 
 // Leave request validation schema
 export const leaveRequestSchema = z.object({
-  leave_type: z.enum(['vacation', 'sick', 'emergency', 'maternity', 'paternity', 'bereavement', 'unpaid'], {
+  leave_type: z.enum(['sick', 'vacation', 'emergency'], {
     required_error: 'Please select a leave type',
   }),
   start_date: z.string().min(1, 'Start date is required'),

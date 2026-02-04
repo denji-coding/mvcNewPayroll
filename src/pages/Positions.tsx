@@ -19,13 +19,13 @@ export default function Positions() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editPosition, setEditPosition] = useState<any>(null);
-  const [form, setForm] = useState({ name: '', description: '', department: '' });
+  const [form, setForm] = useState({ name: '', description: '' });
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     createPosition.mutate(form, {
       onSuccess: () => {
-        setForm({ name: '', description: '', department: '' });
+        setForm({ name: '', description: '' });
         setCreateOpen(false);
       },
     });
@@ -35,11 +35,11 @@ export default function Positions() {
     e.preventDefault();
     if (!editPosition) return;
     updatePosition.mutate(
-      { id: editPosition.id, name: form.name, description: form.description, department: form.department },
+      { id: editPosition.id, name: form.name, description: form.description },
       {
         onSuccess: () => {
           setEditPosition(null);
-          setForm({ name: '', description: '', department: '' });
+          setForm({ name: '', description: '' });
         },
       }
     );
@@ -47,7 +47,7 @@ export default function Positions() {
 
   const openEditDialog = (position: any) => {
     setEditPosition(position);
-    setForm({ name: position.name, description: position.description || '', department: position.department || '' });
+    setForm({ name: position.name, description: position.description || '' });
   };
 
   return (
@@ -72,14 +72,6 @@ export default function Positions() {
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g., Software Engineer"
                   required
-                />
-              </div>
-              <div>
-                <Label>Department</Label>
-                <Input
-                  value={form.department}
-                  onChange={(e) => setForm({ ...form, department: e.target.value })}
-                  placeholder="e.g., Engineering"
                 />
               </div>
               <div>
@@ -116,7 +108,6 @@ export default function Positions() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Position Name</TableHead>
-                  <TableHead>Department</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -127,7 +118,6 @@ export default function Positions() {
                   positions.map((position) => (
                     <TableRow key={position.id}>
                       <TableCell className="font-medium">{position.name}</TableCell>
-                      <TableCell>{position.department || '-'}</TableCell>
                       <TableCell>{position.description || '-'}</TableCell>
                       <TableCell>
                         <Badge variant={position.is_active ? 'default' : 'secondary'}>
@@ -171,7 +161,7 @@ export default function Positions() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                       No positions found. Create your first position.
                     </TableCell>
                   </TableRow>
@@ -196,14 +186,6 @@ export default function Positions() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="e.g., Software Engineer"
                 required
-              />
-            </div>
-            <div>
-              <Label>Department</Label>
-              <Input
-                value={form.department}
-                onChange={(e) => setForm({ ...form, department: e.target.value })}
-                placeholder="e.g., Engineering"
               />
             </div>
             <div>
