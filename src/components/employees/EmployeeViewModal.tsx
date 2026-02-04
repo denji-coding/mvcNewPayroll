@@ -93,7 +93,6 @@ export function EmployeeViewModal({ employee, open, onClose }: EmployeeViewModal
             <SectionHeader icon={Briefcase} title="Employment Details" />
             <div className="bg-muted/30 rounded-lg p-3">
               <InfoRow label="Position" value={employee.position} />
-              <InfoRow label="Department" value={employee.department} />
               <InfoRow label="Branch" value={employee.branches?.name} />
               <InfoRow label="Date Hired" value={formatDate(employee.date_hired)} />
               <InfoRow label="Basic Salary" value={formatCurrency(employee.basic_salary)} />

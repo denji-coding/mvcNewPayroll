@@ -2,34 +2,19 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Download, Edit2 } from 'lucide-react';
-import { useAttendanceByDate, useAttendanceStats, useUpdateAttendance } from '@/hooks/useAttendance';
-import { useAuth } from '@/hooks/useAuth';
+import { Download } from 'lucide-react';
+import { useAttendanceByDate, useAttendanceStats } from '@/hooks/useAttendance';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { usePagination } from '@/hooks/usePagination';
 import { TablePagination } from '@/components/TablePagination';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Input } from '@/components/ui/input';
 
 export default function Attendance() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
-  const { role } = useAuth();
   const { data: attendance, isLoading } = useAttendanceByDate(dateStr);
   const { data: stats, isLoading: statsLoading } = useAttendanceStats(dateStr);
-  const updateAttendance = useUpdateAttendance();
-
-  const [editRecord, setEditRecord] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ 
-    morning_in: '', 
-    morning_out: '', 
-    afternoon_in: '', 
-    afternoon_out: '', 
-    remarks: '' 
-  });
 
   const { currentPage, setCurrentPage, totalPages, paginatedItems } = usePagination(attendance || [], 10);
 
@@ -40,69 +25,6 @@ export default function Attendance() {
     } catch {
       return timestamp;
     }
-  };
-
-  const handleEdit = (record: any) => {
-    setEditRecord(record);
-    setEditForm({
-      morning_in: record.morning_in ? format(parseISO(record.morning_in), "HH:mm") : (record.time_in ? format(parseISO(record.time_in), "HH:mm") : ''),
-      morning_out: record.morning_out ? format(parseISO(record.morning_out), "HH:mm") : '',
-      afternoon_in: record.afternoon_in ? format(parseISO(record.afternoon_in), "HH:mm") : '',
-      afternoon_out: record.afternoon_out ? format(parseISO(record.afternoon_out), "HH:mm") : (record.time_out ? format(parseISO(record.time_out), "HH:mm") : ''),
-      remarks: record.remarks || ''
-    });
-  };
-
-  const handleSaveEdit = () => {
-    if (!editRecord) return;
-    
-    // Build update payload with only changed fields
-    const updatePayload: any = { id: editRecord.id };
-    
-    // Helper to check if a field was changed
-    const getOriginalTime = (timestamp: string | null) => {
-      if (!timestamp) return '';
-      try {
-        return format(parseISO(timestamp), "HH:mm");
-      } catch {
-        return '';
-      }
-    };
-    
-    // Only include fields that were explicitly modified
-    const origMorningIn = getOriginalTime(editRecord.morning_in || editRecord.time_in);
-    const origMorningOut = getOriginalTime(editRecord.morning_out);
-    const origAfternoonIn = getOriginalTime(editRecord.afternoon_in);
-    const origAfternoonOut = getOriginalTime(editRecord.afternoon_out || editRecord.time_out);
-    
-    if (editForm.morning_in !== origMorningIn) {
-      const morningIn = editForm.morning_in ? `${dateStr}T${editForm.morning_in}:00` : null;
-      updatePayload.morning_in = morningIn;
-      updatePayload.time_in = morningIn;
-    }
-    
-    if (editForm.morning_out !== origMorningOut) {
-      updatePayload.morning_out = editForm.morning_out ? `${dateStr}T${editForm.morning_out}:00` : null;
-    }
-    
-    if (editForm.afternoon_in !== origAfternoonIn) {
-      updatePayload.afternoon_in = editForm.afternoon_in ? `${dateStr}T${editForm.afternoon_in}:00` : null;
-    }
-    
-    if (editForm.afternoon_out !== origAfternoonOut) {
-      const afternoonOut = editForm.afternoon_out ? `${dateStr}T${editForm.afternoon_out}:00` : null;
-      updatePayload.afternoon_out = afternoonOut;
-      updatePayload.time_out = afternoonOut;
-    }
-    
-    // Always include remarks if changed
-    if (editForm.remarks !== (editRecord.remarks || '')) {
-      updatePayload.remarks = editForm.remarks || null;
-    }
-    
-    updateAttendance.mutate(updatePayload as any, {
-      onSuccess: () => setEditRecord(null)
-    });
   };
 
   const exportCSV = () => {
@@ -204,7 +126,6 @@ export default function Attendance() {
                   <TableHead>Hours</TableHead>
                   <TableHead>Late</TableHead>
                   <TableHead>Status</TableHead>
-                  {role === 'hr_admin' && <TableHead>Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -226,49 +147,11 @@ export default function Attendance() {
                       <TableCell>{a.hours_worked?.toFixed(2) || '-'}</TableCell>
                       <TableCell>{a.late_minutes || 0}</TableCell>
                       <TableCell>{getStatusBadge(a.status || 'present')}</TableCell>
-                      {role === 'hr_admin' && (
-                        <TableCell>
-                          <Dialog open={editRecord?.id === a.id} onOpenChange={(open) => !open && setEditRecord(null)}>
-                            <DialogTrigger asChild>
-                              <Button size="sm" variant="ghost" onClick={() => handleEdit(a)}>
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader><DialogTitle>Edit Attendance</DialogTitle></DialogHeader>
-                              <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <Label>AM In</Label>
-                                    <Input type="time" value={editForm.morning_in} onChange={(e) => setEditForm({ ...editForm, morning_in: e.target.value })} />
-                                  </div>
-                                  <div>
-                                    <Label>AM Out</Label>
-                                    <Input type="time" value={editForm.morning_out} onChange={(e) => setEditForm({ ...editForm, morning_out: e.target.value })} />
-                                  </div>
-                                  <div>
-                                    <Label>PM In</Label>
-                                    <Input type="time" value={editForm.afternoon_in} onChange={(e) => setEditForm({ ...editForm, afternoon_in: e.target.value })} />
-                                  </div>
-                                  <div>
-                                    <Label>PM Out</Label>
-                                    <Input type="time" value={editForm.afternoon_out} onChange={(e) => setEditForm({ ...editForm, afternoon_out: e.target.value })} />
-                                  </div>
-                                </div>
-                                <div><Label>Remarks</Label><Input value={editForm.remarks} onChange={(e) => setEditForm({ ...editForm, remarks: e.target.value })} /></div>
-                                <Button onClick={handleSaveEdit} className="w-full" disabled={updateAttendance.isPending}>
-                                  {updateAttendance.isPending ? 'Saving...' : 'Save Changes'}
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </TableCell>
-                      )}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={role === 'hr_admin' ? 10 : 9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No attendance records for this date
                     </TableCell>
                   </TableRow>

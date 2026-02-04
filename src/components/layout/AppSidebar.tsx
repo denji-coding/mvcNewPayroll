@@ -133,17 +133,16 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
+        <div className={`flex flex-col items-center ${collapsed ? 'justify-center' : ''}`}>
           <img 
             src={companyLogo} 
-            alt="MVC Corporation" 
-            className="w-10 h-10 object-contain flex-shrink-0"
+            alt="Migrant Venture Corporation" 
+            className={`object-contain flex-shrink-0 ${collapsed ? 'w-9 h-9' : 'w-12 h-12'}`}
           />
           {!collapsed && (
-            <div className="flex flex-col min-w-0">
-              <span className="font-semibold text-sidebar-foreground truncate">MVC</span>
-              <span className="text-xs text-sidebar-foreground/70 truncate">HR & Payroll</span>
-            </div>
+            <span className="font-semibold text-sidebar-foreground text-center text-sm mt-2 leading-tight">
+              Migrant Venture Corporation
+            </span>
           )}
         </div>
       </SidebarHeader>
@@ -227,11 +226,10 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-2">
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors">
-              <Avatar className="h-8 w-8">
+            <button className={`w-full flex items-center gap-3 rounded-lg hover:bg-sidebar-accent transition-colors ${collapsed ? 'justify-center p-3' : 'p-2'}`}>
+              <Avatar className={collapsed ? "h-9 w-9" : "h-8 w-8"}>
                 <AvatarImage src={profile?.avatarUrl} />
                 <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm">
                   {getInitials()}

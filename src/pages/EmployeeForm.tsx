@@ -166,7 +166,7 @@ export default function EmployeeForm() {
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>Department</Label><Input value={form.department} onChange={(e) => updateField('department', e.target.value)} /></div>
+            
             <div><Label>Branch</Label><Select value={form.branch_id} onValueChange={(v) => updateField('branch_id', v)}><SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger><SelectContent>{branches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Date Hired *</Label><DateInput value={form.date_hired} onChange={(v) => updateField('date_hired', v)} /></div>
             <div><Label>Basic Salary (₱)</Label><Input type="number" value={form.basic_salary} onChange={(e) => updateField('basic_salary', e.target.value)} /></div>
@@ -223,6 +223,14 @@ export default function EmployeeForm() {
             <div><Label>TIN Number</Label><Input value={form.tin_number} onChange={(e) => updateField('tin_number', e.target.value)} /></div>
             <div><Label>Bank Name</Label><Input value={form.bank_name} onChange={(e) => updateField('bank_name', e.target.value)} /></div>
             <div><Label>Bank Account Number</Label><Input value={form.bank_account_number} onChange={(e) => updateField('bank_account_number', e.target.value)} /></div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Emergency Contact</CardTitle></CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <div><Label>Emergency Contact Name</Label><Input value={form.emergency_contact_name} onChange={(e) => updateField('emergency_contact_name', e.target.value)} placeholder="Contact person name" /></div>
+            <div><Label>Emergency Contact Phone</Label><Input value={form.emergency_contact_phone} onChange={(e) => updateField('emergency_contact_phone', e.target.value)} placeholder="Contact phone number" /></div>
           </CardContent>
         </Card>
 
