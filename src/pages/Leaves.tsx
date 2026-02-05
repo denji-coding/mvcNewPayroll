@@ -10,9 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, CheckCircle, XCircle, CalendarIcon, Upload, Heart, Palmtree, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+ import { DatePicker } from '@/components/ui/date-picker';
+ import { Plus, CheckCircle, XCircle, Upload, Heart, Palmtree, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, startOfToday, isBefore, isAfter } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -189,86 +188,28 @@ export default function Leaves() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Start Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !startDate && "text-muted-foreground"
-                        )}
-                        disabled={!form.leave_type}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, "MMM d, yyyy") : "Pick date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        disabled={getDateDisabledFn()}
-                        initialFocus
-                        className="pointer-events-auto"
-                        captionLayout="dropdown-buttons"
-                        fromYear={2020}
-                        toYear={2030}
-                        modifiers={{
-                          selected: startDate ? [startDate] : [],
-                          range_start: startDate ? [startDate] : [],
-                        }}
-                        modifiersStyles={{
-                          range_start: { backgroundColor: 'hsl(var(--primary))', color: 'white', borderRadius: '50%' },
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <DatePicker
+                    date={startDate}
+                    onDateChange={setStartDate}
+                    placeholder="Pick date"
+                    disabled={!form.leave_type}
+                    disabledDates={getDateDisabledFn()}
+                  />
                 </div>
                 
                 <div className="space-y-2">
                   <Label>End Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !endDate && "text-muted-foreground"
-                        )}
-                        disabled={!form.leave_type}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, "MMM d, yyyy") : "Pick date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        disabled={(date) => {
-                          const typeDisabled = getDateDisabledFn()(date);
-                          const beforeStart = startDate ? isBefore(date, startDate) : false;
-                          return typeDisabled || beforeStart;
-                        }}
-                        initialFocus
-                        className="pointer-events-auto"
-                        captionLayout="dropdown-buttons"
-                        fromYear={2020}
-                        toYear={2030}
-                        modifiers={{
-                          selected: endDate ? [endDate] : [],
-                          range_end: endDate ? [endDate] : [],
-                          in_range: startDate && endDate ? { from: startDate, to: endDate } : undefined,
-                        }}
-                        modifiersStyles={{
-                          range_end: { backgroundColor: 'hsl(var(--primary))', color: 'white', borderRadius: '50%' },
-                          in_range: { backgroundColor: 'hsl(var(--primary) / 0.1)' },
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <DatePicker
+                    date={endDate}
+                    onDateChange={setEndDate}
+                    placeholder="Pick date"
+                    disabled={!form.leave_type}
+                    disabledDates={(date) => {
+                      const typeDisabled = getDateDisabledFn()(date);
+                      const beforeStart = startDate ? isBefore(date, startDate) : false;
+                      return typeDisabled || beforeStart;
+                    }}
+                  />
                 </div>
               </div>
               
