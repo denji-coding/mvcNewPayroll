@@ -13,7 +13,8 @@ import { FileText, Download, Calendar, DollarSign, TrendingUp, TrendingDown } fr
 import { generatePayslipPdf } from '@/lib/generatePayslipPdf';
 
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+const startYear = 2020; // Earliest year to show
+const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => currentYear - i);
 
 export default function MyPayslips() {
   const { user } = useAuth();

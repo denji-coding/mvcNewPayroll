@@ -271,28 +271,6 @@ export default function DailyTimeRecord() {
       </div>
 
       {/* Employee Info Card */}
-      <Card className="mb-6 print-hide">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Employee:</span>
-              <p className="font-medium">{employee.first_name} {employee.last_name}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">ID:</span>
-              <p className="font-medium">{employee.employee_id}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Position:</span>
-              <p className="font-medium">{employee.position}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Department:</span>
-              <p className="font-medium">{employee.department || '-'}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Filters */}
       <Card className="mb-6 print-hide">
