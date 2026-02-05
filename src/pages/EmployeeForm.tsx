@@ -146,7 +146,13 @@ export default function EmployeeForm() {
                 <div>
                   <Label>Employee ID *</Label>
                   <div className="flex gap-2">
-                    <Input value={form.employee_id} onChange={(e) => updateField('employee_id', e.target.value)} required className="flex-1" />
+                    <Input 
+                      value={form.employee_id} 
+                      onChange={(e) => updateField('employee_id', e.target.value)} 
+                      required 
+                      className="flex-1" 
+                      disabled={!!id}
+                    />
                     {!id && (
                       <Button type="button" variant="outline" size="icon" onClick={generateEmployeeId} title="Generate ID">
                         <RefreshCw className="h-4 w-4" />
