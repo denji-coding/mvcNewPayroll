@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, Mail } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import loginBg from '@/assets/login-bg.jpg';
 import {
   Dialog,
   DialogContent,
@@ -107,8 +108,14 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/20 p-4">
-      <div className="w-full max-w-md animate-fade-in">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat relative"
+      style={{ backgroundImage: `url(${loginBg})` }}
+    >
+      {/* Overlay for better readability */}
+      <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
+      
+      <div className="w-full max-w-md animate-fade-in relative z-10">
         <div className="flex flex-col items-center mb-8">
           <img 
             src={companyLogo} 

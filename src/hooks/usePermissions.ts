@@ -31,6 +31,7 @@ export const AVAILABLE_PERMISSIONS = [
   { key: 'page_dtr', label: 'Daily Time Record', description: 'Access to DTR records page' },
   { key: 'page_positions', label: 'Positions', description: 'Access to positions management' },
   { key: 'page_time_schedule', label: 'Time Schedule', description: 'Access to time schedule management' },
+  { key: 'page_leave_credits', label: 'Leave Credits', description: 'Access to leave credits management' },
 ] as const;
 
 export type PermissionKey = typeof AVAILABLE_PERMISSIONS[number]['key'];
