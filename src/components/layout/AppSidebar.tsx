@@ -14,6 +14,7 @@ import {
   CalendarClock,
   Briefcase,
   ClipboardList,
+  CreditCard,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,6 +62,7 @@ const adminNavigationItems: NavItem[] = [
   { title: 'Attendance Terminal', url: '/attendance-terminal', icon: MonitorSmartphone, roles: ['hr_admin'], external: true },
   { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_attendance' },
   { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_leaves' },
+  { title: 'Leave Credits', url: '/leave-credits', icon: CreditCard, roles: ['hr_admin'], permissionKey: 'page_leave_credits' },
   { title: 'Payroll', url: '/payroll', icon: DollarSign, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_payroll' },
   { title: 'Reports', url: '/reports', icon: FileText, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_reports' },
   { title: 'Settings', url: '/settings', icon: Settings, roles: ['hr_admin', 'employee'], permissionKey: 'page_settings' },
@@ -133,11 +135,11 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border p-4">
-        <div className={`flex flex-col items-center ${collapsed ? 'justify-center' : ''}`}>
+        <div className="flex flex-col items-center justify-center">
           <img 
             src={companyLogo} 
             alt="Migrant Venture Corporation" 
-            className={`object-contain flex-shrink-0 ${collapsed ? 'w-9 h-9' : 'w-12 h-12'}`}
+            className={`object-contain flex-shrink-0 ${collapsed ? 'h-8 w-8' : 'w-12 h-12'}`}
           />
           {!collapsed && (
             <span className="font-semibold text-sidebar-foreground text-center text-sm mt-2 leading-tight">
@@ -228,8 +230,8 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border p-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className={`w-full flex items-center gap-3 rounded-lg hover:bg-sidebar-accent transition-colors ${collapsed ? 'justify-center p-3' : 'p-2'}`}>
-              <Avatar className={collapsed ? "h-9 w-9" : "h-8 w-8"}>
+            <button className={`w-full flex items-center gap-3 rounded-lg hover:bg-sidebar-accent transition-colors ${collapsed ? 'justify-center p-2' : 'p-2'}`}>
+              <Avatar className="h-8 w-8">
                 <AvatarImage src={profile?.avatarUrl} />
                 <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm">
                   {getInitials()}

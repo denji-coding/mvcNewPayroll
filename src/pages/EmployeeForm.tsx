@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { SalaryAdjustmentsCard } from '@/components/employees/SalaryAdjustmentsCard';
 import { EmployeeAvatarUpload } from '@/components/employees/EmployeeAvatarUpload';
 import { DateInput } from '@/components/ui/date-picker';
@@ -111,8 +112,13 @@ export default function EmployeeForm() {
 
   const updateField = (field: string, value: string) => setForm({ ...form, [field]: value });
 
+  const generateEmployeeId = () => {
+    const randomId = Math.floor(100000 + Math.random() * 900000);
+    setForm({ ...form, employee_id: `EMP-${randomId}` });
+  };
+
   return (
-    <div className="page-container max-w-4xl">
+    <div className="page-container max-w-6xl">
       <div className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="icon" onClick={() => navigate('/employees')}><ArrowLeft className="h-4 w-4" /></Button>
         <h1 className="page-title">{id ? 'Edit Employee' : 'Add New Employee'}</h1>
@@ -137,7 +143,17 @@ export default function EmployeeForm() {
               
               {/* Personal Info Fields */}
               <div className="flex-1 grid gap-4 md:grid-cols-3">
-                <div><Label>Employee ID *</Label><Input value={form.employee_id} onChange={(e) => updateField('employee_id', e.target.value)} required /></div>
+                <div>
+                  <Label>Employee ID *</Label>
+                  <div className="flex gap-2">
+                    <Input value={form.employee_id} onChange={(e) => updateField('employee_id', e.target.value)} required className="flex-1" />
+                    {!id && (
+                      <Button type="button" variant="outline" size="icon" onClick={generateEmployeeId} title="Generate ID">
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 <div><Label>First Name *</Label><Input value={form.first_name} onChange={(e) => updateField('first_name', e.target.value)} required /></div>
                 <div><Label>Last Name *</Label><Input value={form.last_name} onChange={(e) => updateField('last_name', e.target.value)} required /></div>
                 <div><Label>Middle Name</Label><Input value={form.middle_name} onChange={(e) => updateField('middle_name', e.target.value)} /></div>

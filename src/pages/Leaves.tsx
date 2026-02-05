@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useLeaveRequests, useCreateLeaveRequest, useApproveLeaveRequest, useLeaveCredits, useAllLeaveCredits, useCreateLeaveCredit, useUpdateLeaveCredit, calculateWorkingDays } from '@/hooks/useLeaves';
-import { useEmployees } from '@/hooks/useEmployees';
+import { useLeaveRequests, useCreateLeaveRequest, useApproveLeaveRequest, useLeaveCredits, calculateWorkingDays } from '@/hooks/useLeaves';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, CheckCircle, XCircle, CalendarIcon, Upload, Settings, Heart, Palmtree, AlertTriangle } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, CalendarIcon, Upload, Heart, Palmtree, AlertTriangle } from 'lucide-react';
 import { format, startOfToday, isBefore, isAfter } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,18 +30,11 @@ export default function Leaves() {
   const { role, user } = useAuth();
   const { data: leaves, isLoading } = useLeaveRequests();
   const { data: credits } = useLeaveCredits();
-  const { data: allCredits } = useAllLeaveCredits();
-  const { data: employees } = useEmployees();
   const createLeave = useCreateLeaveRequest();
   const approveLeave = useApproveLeaveRequest();
-  const createCredit = useCreateLeaveCredit();
-  const updateCredit = useUpdateLeaveCredit();
 
   const [open, setOpen] = useState(false);
-  const [creditDialogOpen, setCreditDialogOpen] = useState(false);
   const [form, setForm] = useState({ leave_type: '', reason: '' });
-  const [creditForm, setCreditForm] = useState({ employee_id: '', leave_type: '', total_credits: '' });
-  const [editCreditId, setEditCreditId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [reviewLeave, setReviewLeave] = useState<any>(null);
@@ -175,46 +167,6 @@ export default function Leaves() {
     return false;
   };
 
-  const handleAddCredit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!creditForm.employee_id || !creditForm.leave_type || !creditForm.total_credits) return;
-    
-    createCredit.mutate({
-      employee_id: creditForm.employee_id,
-      leave_type: creditForm.leave_type as 'sick' | 'vacation' | 'emergency',
-      total_credits: parseFloat(creditForm.total_credits),
-    }, {
-      onSuccess: () => {
-        setCreditForm({ employee_id: '', leave_type: '', total_credits: '' });
-        setCreditDialogOpen(false);
-      }
-    });
-  };
-
-  const handleEditCredit = (credit: any) => {
-    setEditCreditId(credit.id);
-    setCreditForm({
-      employee_id: credit.employee_id,
-      leave_type: credit.leave_type,
-      total_credits: credit.total_credits?.toString() || '',
-    });
-    setCreditDialogOpen(true);
-  };
-
-  const handleSaveCredit = () => {
-    if (!editCreditId) return;
-    updateCredit.mutate({
-      id: editCreditId,
-      total_credits: parseFloat(creditForm.total_credits),
-    }, {
-      onSuccess: () => {
-        setEditCreditId(null);
-        setCreditForm({ employee_id: '', leave_type: '', total_credits: '' });
-        setCreditDialogOpen(false);
-      }
-    });
-  };
-
   return (
     <div className="page-container">
       <div className="page-header">
@@ -344,114 +296,8 @@ export default function Leaves() {
 
       {/* Leave Credits Card */}
       <Card className="mb-6">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">Leave Credits</CardTitle>
-          {role === 'hr_admin' && (
-            <Dialog open={creditDialogOpen} onOpenChange={(open) => {
-              if (!open) {
-                setEditCreditId(null);
-                setCreditForm({ employee_id: '', leave_type: '', total_credits: '' });
-              }
-              setCreditDialogOpen(open);
-            }}>
-              <DialogTrigger asChild>
-                <Button size="sm" variant="outline">
-                  <Settings className="mr-2 h-4 w-4" /> Manage Credits
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>{editCreditId ? 'Edit Leave Credit' : 'Add Leave Credit'}</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={editCreditId ? (e) => { e.preventDefault(); handleSaveCredit(); } : handleAddCredit} className="space-y-4">
-                  {!editCreditId && (
-                    <>
-                      <div>
-                        <Label>Employee</Label>
-                        <Select value={creditForm.employee_id} onValueChange={(v) => setCreditForm({ ...creditForm, employee_id: v })}>
-                          <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
-                          <SelectContent>
-                            {employees?.map((emp: any) => (
-                              <SelectItem key={emp.id} value={emp.id}>
-                                {emp.first_name} {emp.last_name} ({emp.employee_id})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Leave Type</Label>
-                        <Select value={creditForm.leave_type} onValueChange={(v) => {
-                          const defaultCredits = LEAVE_TYPES.find(lt => lt.value === v)?.defaultCredits || 0;
-                          setCreditForm({ ...creditForm, leave_type: v, total_credits: defaultCredits.toString() });
-                        }}>
-                          <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                          <SelectContent>
-                            {LEAVE_TYPES.map(t => (
-                              <SelectItem key={t.value} value={t.value}>{t.label} (Default: {t.defaultCredits} days)</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
-                  )}
-                  <div>
-                    <Label>Total Credits</Label>
-                    <Input 
-                      type="number" 
-                      min="0" 
-                      step="0.5"
-                      value={creditForm.total_credits} 
-                      onChange={(e) => setCreditForm({ ...creditForm, total_credits: e.target.value })} 
-                      placeholder="Enter credit amount"
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={createCredit.isPending || updateCredit.isPending}>
-                      {editCreditId ? 'Save Changes' : 'Add Credit'}
-                    </Button>
-                  </DialogFooter>
-                </form>
-                
-                {/* Show existing credits */}
-                {!editCreditId && allCredits && allCredits.length > 0 && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="text-sm font-medium mb-2">Existing Credits (Current Year)</h4>
-                    <div className="max-h-48 overflow-y-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="text-xs">Employee</TableHead>
-                            <TableHead className="text-xs">Type</TableHead>
-                            <TableHead className="text-xs">Total</TableHead>
-                            <TableHead className="text-xs">Used</TableHead>
-                            <TableHead className="text-xs"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {allCredits.slice(0, 10).map((credit: any) => (
-                            <TableRow key={credit.id}>
-                              <TableCell className="text-xs py-1">
-                                {credit.employees?.first_name} {credit.employees?.last_name}
-                              </TableCell>
-                              <TableCell className="text-xs py-1 capitalize">{credit.leave_type}</TableCell>
-                              <TableCell className="text-xs py-1">{credit.total_credits}</TableCell>
-                              <TableCell className="text-xs py-1">{credit.used_credits}</TableCell>
-                              <TableCell className="text-xs py-1">
-                                <Button size="sm" variant="ghost" className="h-6 px-2" onClick={() => handleEditCredit(credit)}>
-                                  Edit
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
-          )}
+        <CardHeader>
+          <CardTitle className="text-lg">My Leave Credits</CardTitle>
         </CardHeader>
         <CardContent>
           {credits && credits.length > 0 ? (
