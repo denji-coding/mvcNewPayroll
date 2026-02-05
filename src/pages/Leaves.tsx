@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Plus, CheckCircle, XCircle, CalendarIcon, Upload, Heart, Palmtree, AlertTriangle } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, CalendarIcon, Upload, Heart, Palmtree, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, startOfToday, isBefore, isAfter } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -211,6 +211,16 @@ export default function Leaves() {
                         disabled={getDateDisabledFn()}
                         initialFocus
                         className="pointer-events-auto"
+                        captionLayout="dropdown-buttons"
+                        fromYear={2020}
+                        toYear={2030}
+                        modifiers={{
+                          selected: startDate ? [startDate] : [],
+                          range_start: startDate ? [startDate] : [],
+                        }}
+                        modifiersStyles={{
+                          range_start: { backgroundColor: 'hsl(var(--primary))', color: 'white', borderRadius: '50%' },
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
@@ -244,6 +254,18 @@ export default function Leaves() {
                         }}
                         initialFocus
                         className="pointer-events-auto"
+                        captionLayout="dropdown-buttons"
+                        fromYear={2020}
+                        toYear={2030}
+                        modifiers={{
+                          selected: endDate ? [endDate] : [],
+                          range_end: endDate ? [endDate] : [],
+                          in_range: startDate && endDate ? { from: startDate, to: endDate } : undefined,
+                        }}
+                        modifiersStyles={{
+                          range_end: { backgroundColor: 'hsl(var(--primary))', color: 'white', borderRadius: '50%' },
+                          in_range: { backgroundColor: 'hsl(var(--primary) / 0.1)' },
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
