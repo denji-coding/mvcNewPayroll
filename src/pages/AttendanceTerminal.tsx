@@ -362,16 +362,16 @@ export default function AttendanceTerminal() {
                       {record.employees?.position || '-'}
                     </TableCell>
                     <TableCell className="text-center text-gray-700">
-                      {record.morning_in ? format(new Date(`2000-01-01T${record.morning_in}`), 'hh:mm a') : '-'}
+                      {record.morning_in ? format(new Date(record.morning_in), 'hh:mm a') : '-'}
                     </TableCell>
                     <TableCell className="text-center text-gray-700">
-                      {record.morning_out ? format(new Date(`2000-01-01T${record.morning_out}`), 'hh:mm a') : '-'}
+                      {record.morning_out ? format(new Date(record.morning_out), 'hh:mm a') : '-'}
                     </TableCell>
                     <TableCell className="text-center text-gray-700">
-                      {record.afternoon_in ? format(new Date(`2000-01-01T${record.afternoon_in}`), 'hh:mm a') : '-'}
+                      {record.afternoon_in ? format(new Date(record.afternoon_in), 'hh:mm a') : '-'}
                     </TableCell>
                     <TableCell className="text-center text-gray-700">
-                      {record.afternoon_out ? format(new Date(`2000-01-01T${record.afternoon_out}`), 'hh:mm a') : '-'}
+                      {record.afternoon_out ? format(new Date(record.afternoon_out), 'hh:mm a') : '-'}
                     </TableCell>
                   </TableRow>
                 ))
