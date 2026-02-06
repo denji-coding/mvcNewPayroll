@@ -329,61 +329,130 @@ export default function AttendanceTerminal() {
 
         {/* Attendance Records Table */}
         <div className="flex-1 overflow-auto p-6">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50">
-                <TableHead className="w-12 text-gray-700">No.</TableHead>
-                <TableHead className="w-16 text-gray-700">Photo</TableHead>
-                <TableHead className="text-gray-700">Name</TableHead>
-                <TableHead className="text-gray-700">Position</TableHead>
-                <TableHead className="text-center text-gray-700">Morning In</TableHead>
-                <TableHead className="text-center text-gray-700">Morning Out</TableHead>
-                <TableHead className="text-center text-gray-700">Afternoon In</TableHead>
-                <TableHead className="text-center text-gray-700">Afternoon Out</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {attendanceRecords && attendanceRecords.length > 0 ? (
-                attendanceRecords.map((record: any, index: number) => (
-                  <TableRow key={record.id}>
-                    <TableCell className="font-medium text-gray-900">{index + 1}</TableCell>
-                    <TableCell>
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={record.employees?.avatar_url} />
-                        <AvatarFallback className="text-xs bg-gray-200 text-gray-700">
-                          {record.employees?.first_name?.[0]}{record.employees?.last_name?.[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                    </TableCell>
-                    <TableCell className="text-gray-900">
-                      {record.employees?.first_name} {record.employees?.last_name}
-                    </TableCell>
-                    <TableCell className="text-gray-600">
-                      {record.employees?.position || '-'}
-                    </TableCell>
-                    <TableCell className="text-center text-gray-700">
-                      {record.morning_in ? format(new Date(record.morning_in), 'hh:mm a') : '-'}
-                    </TableCell>
-                    <TableCell className="text-center text-gray-700">
-                      {record.morning_out ? format(new Date(record.morning_out), 'hh:mm a') : '-'}
-                    </TableCell>
-                    <TableCell className="text-center text-gray-700">
-                      {record.afternoon_in ? format(new Date(record.afternoon_in), 'hh:mm a') : '-'}
-                    </TableCell>
-                    <TableCell className="text-center text-gray-700">
-                      {record.afternoon_out ? format(new Date(record.afternoon_out), 'hh:mm a') : '-'}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gradient-to-r from-[#1a3d2b] to-[#2d5a40] border-0">
+                  <TableHead className="w-14 text-white font-semibold text-xs uppercase tracking-wider py-4">No.</TableHead>
+                  <TableHead className="w-20 text-white font-semibold text-xs uppercase tracking-wider py-4">Photo</TableHead>
+                  <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-4">Employee ID</TableHead>
+                  <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-4">Full Name</TableHead>
+                  <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-4">Position</TableHead>
+                  <TableHead className="text-center text-white font-semibold text-xs uppercase tracking-wider py-4">
+                    <div className="flex flex-col items-center">
+                      <span>Morning</span>
+                      <span className="text-white/70 text-[10px] font-normal">In</span>
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center text-white font-semibold text-xs uppercase tracking-wider py-4">
+                    <div className="flex flex-col items-center">
+                      <span>Morning</span>
+                      <span className="text-white/70 text-[10px] font-normal">Out</span>
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center text-white font-semibold text-xs uppercase tracking-wider py-4">
+                    <div className="flex flex-col items-center">
+                      <span>Afternoon</span>
+                      <span className="text-white/70 text-[10px] font-normal">In</span>
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center text-white font-semibold text-xs uppercase tracking-wider py-4">
+                    <div className="flex flex-col items-center">
+                      <span>Afternoon</span>
+                      <span className="text-white/70 text-[10px] font-normal">Out</span>
+                    </div>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {attendanceRecords && attendanceRecords.length > 0 ? (
+                  attendanceRecords.map((record: any, index: number) => (
+                    <TableRow 
+                      key={record.id} 
+                      className={`border-b border-gray-100 transition-colors hover:bg-green-50/50 ${
+                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                      }`}
+                    >
+                      <TableCell className="font-medium text-gray-500 text-sm py-4">
+                        {index + 1}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <Avatar className="h-10 w-10 ring-2 ring-white shadow-sm">
+                          <AvatarImage src={record.employees?.avatar_url} className="object-cover" />
+                          <AvatarFallback className="text-xs font-semibold bg-gradient-to-br from-green-100 to-green-200 text-green-700">
+                            {record.employees?.first_name?.[0]}{record.employees?.last_name?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 text-xs font-mono font-medium">
+                          {record.employees?.employee_id || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div className="font-medium text-gray-900">
+                          {record.employees?.first_name} {record.employees?.last_name}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="text-gray-600 text-sm">
+                          {record.employees?.position || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center py-4">
+                        {record.morning_in ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                            {format(new Date(record.morning_in), 'hh:mm a')}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center py-4">
+                        {record.morning_out ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                            {format(new Date(record.morning_out), 'hh:mm a')}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center py-4">
+                        {record.afternoon_in ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
+                            {format(new Date(record.afternoon_in), 'hh:mm a')}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center py-4">
+                        {record.afternoon_out ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-medium">
+                            {format(new Date(record.afternoon_out), 'hh:mm a')}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-16">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                          <Clock className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <p className="text-gray-500 font-medium">No attendance records for today</p>
+                        <p className="text-gray-400 text-sm">Records will appear here as employees clock in</p>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-gray-500">
-                    No attendance records for today
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
 
