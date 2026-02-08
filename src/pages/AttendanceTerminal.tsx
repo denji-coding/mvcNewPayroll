@@ -17,6 +17,8 @@ export default function AttendanceTerminal() {
   const rfidInputRef = useRef<HTMLInputElement>(null);
   const manualInputRef = useRef<HTMLInputElement>(null);
   const autoSubmitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastKeystrokeTimeRef = useRef<number>(0);
+  const rfidBufferRef = useRef<string>('');
 
   const {
     currentTime,
@@ -86,21 +88,58 @@ export default function AttendanceTerminal() {
     }
   }, [isManualEntryAllowed, mode]);
 
-  const handleRfidChange = useCallback((value: string) => {
-    setRfidInput(value);
-    
+  // RFID scanners send characters very rapidly (<50ms between keystrokes)
+  // Human typing is much slower. We use this to distinguish scanner vs keyboard.
+  const handleRfidKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    const now = Date.now();
+    const timeSinceLastKey = now - lastKeystrokeTimeRef.current;
+    lastKeystrokeTimeRef.current = now;
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (autoSubmitTimeoutRef.current) {
+        clearTimeout(autoSubmitTimeoutRef.current);
+      }
+      // Only submit if buffer was built from rapid input (scanner)
+      if (rfidBufferRef.current.trim() && !isLoading) {
+        setRfidInput(rfidBufferRef.current);
+        submitRfidAttendance(rfidBufferRef.current);
+      }
+      rfidBufferRef.current = '';
+      setRfidInput('');
+      return;
+    }
+
+    // Ignore non-printable keys
+    if (e.key.length !== 1) return;
+
+    // If time between keystrokes > 80ms, it's likely manual typing — reset buffer
+    if (timeSinceLastKey > 80 && rfidBufferRef.current.length > 0) {
+      rfidBufferRef.current = '';
+      setRfidInput('');
+    }
+
+    rfidBufferRef.current += e.key;
+    // Don't show the value — keep input visually empty
+    e.preventDefault();
+
+    // Auto-submit after 300ms idle (scanner finishes quickly)
     if (autoSubmitTimeoutRef.current) {
       clearTimeout(autoSubmitTimeoutRef.current);
     }
-    
-    if (value.trim() && !isLoading) {
-      autoSubmitTimeoutRef.current = setTimeout(() => {
-        if (value.trim()) {
-          submitRfidAttendance(value);
-        }
-      }, 300);
-    }
+    autoSubmitTimeoutRef.current = setTimeout(() => {
+      if (rfidBufferRef.current.trim() && !isLoading) {
+        setRfidInput(rfidBufferRef.current);
+        submitRfidAttendance(rfidBufferRef.current);
+        rfidBufferRef.current = '';
+        setRfidInput('');
+      }
+    }, 300);
   }, [submitRfidAttendance, isLoading]);
+
+  const handleRfidChange = useCallback((_value: string) => {
+    // Prevent manual input — all handling is done via onKeyDown
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -223,26 +262,17 @@ export default function AttendanceTerminal() {
               <form onSubmit={handleRfidSubmit}>
                 <Input
                   ref={rfidInputRef}
-                  type="password"
-                  value={rfidInput}
-                  onChange={(e) => handleRfidChange(e.target.value)}
+                  type="text"
+                  value=""
+                  onChange={() => {}}
                   placeholder="Waiting for RFID scan..."
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 h-12 text-center caret-transparent"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 h-12 text-center caret-transparent cursor-default"
                   autoComplete="off"
                   autoFocus
                   disabled={isLoading}
-                  style={{ color: 'transparent', textShadow: '0 0 0 transparent' }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (autoSubmitTimeoutRef.current) {
-                        clearTimeout(autoSubmitTimeoutRef.current);
-                      }
-                      if (rfidInput.trim() && !isLoading) {
-                        submitRfidAttendance(rfidInput);
-                      }
-                    }
-                  }}
+                  readOnly
+                  style={{ color: 'transparent' }}
+                  onKeyDown={handleRfidKeyDown}
                   onBlur={() => {
                     if (mode === 'rfid' && !result && !isLoading) {
                       setTimeout(() => rfidInputRef.current?.focus(), 100);
@@ -266,27 +296,27 @@ export default function AttendanceTerminal() {
             )}
           </div>
 
-          {/* Submit Button */}
-          <div>
-            <Button
-              onClick={() => {
-                if (mode === 'rfid' && rfidInput.trim()) {
-                  submitRfidAttendance(rfidInput);
-                } else if (mode === 'manual' && employeeIdInput.trim()) {
-                  submitManualAttendance(employeeIdInput);
-                }
-              }}
-              disabled={isLoading || (mode === 'rfid' ? !rfidInput.trim() : !employeeIdInput.trim())}
-              className="w-full h-12 bg-white text-[#1a3d2b] font-semibold hover:bg-white/90"
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              ) : (
-                <CheckCircle2 className="w-5 h-5 mr-2" />
-              )}
-              Submit
-            </Button>
-          </div>
+          {/* Submit Button - Only for manual mode */}
+          {mode === 'manual' && (
+            <div>
+              <Button
+                onClick={() => {
+                  if (employeeIdInput.trim()) {
+                    submitManualAttendance(employeeIdInput);
+                  }
+                }}
+                disabled={isLoading || !employeeIdInput.trim()}
+                className="w-full h-12 bg-white text-[#1a3d2b] font-semibold hover:bg-white/90"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5 mr-2" />
+                )}
+                Submit
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
