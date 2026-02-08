@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { CreditCard, User, CheckCircle2, XCircle, Clock, Loader2, AlertTriangle, LogIn, LogOut, Calendar } from 'lucide-react';
+import { CreditCard, User, CheckCircle2, XCircle, Clock, Loader2, AlertTriangle, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -265,8 +265,8 @@ export default function AttendanceTerminal() {
             )}
           </div>
 
-          {/* Time In/Out Buttons */}
-          <div className="space-y-3">
+          {/* Submit Button */}
+          <div>
             <Button
               onClick={() => {
                 if (mode === 'rfid' && rfidInput.trim()) {
@@ -276,26 +276,14 @@ export default function AttendanceTerminal() {
                 }
               }}
               disabled={isLoading || (mode === 'rfid' ? !rfidInput.trim() : !employeeIdInput.trim())}
-              className="w-full h-12 bg-transparent border-2 border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
-              variant="outline"
+              className="w-full h-12 bg-white text-[#1a3d2b] font-semibold hover:bg-white/90"
             >
-              <LogIn className="w-5 h-5 mr-2" />
-              Time In
-            </Button>
-            <Button
-              onClick={() => {
-                if (mode === 'rfid' && rfidInput.trim()) {
-                  submitRfidAttendance(rfidInput);
-                } else if (mode === 'manual' && employeeIdInput.trim()) {
-                  submitManualAttendance(employeeIdInput);
-                }
-              }}
-              disabled={isLoading || (mode === 'rfid' ? !rfidInput.trim() : !employeeIdInput.trim())}
-              className="w-full h-12 bg-transparent border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-              variant="outline"
-            >
-              <LogOut className="w-5 h-5 mr-2" />
-              Time Out
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5 mr-2" />
+              )}
+              Submit
             </Button>
           </div>
         </div>
@@ -320,7 +308,7 @@ export default function AttendanceTerminal() {
         </div>
 
         {/* Date Display */}
-        <div className="flex items-center px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-center px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Calendar className="w-4 h-4" />
             <span>{format(new Date(), 'EEEE, MMMM d, yyyy')}</span>
