@@ -223,14 +223,15 @@ export default function AttendanceTerminal() {
               <form onSubmit={handleRfidSubmit}>
                 <Input
                   ref={rfidInputRef}
-                  type="text"
+                  type="password"
                   value={rfidInput}
                   onChange={(e) => handleRfidChange(e.target.value)}
-                  placeholder="Scan RFID card..."
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 h-12 text-center"
+                  placeholder="Waiting for RFID scan..."
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 h-12 text-center caret-transparent"
                   autoComplete="off"
                   autoFocus
                   disabled={isLoading}
+                  style={{ color: 'transparent', textShadow: '0 0 0 transparent' }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
