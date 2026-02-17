@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useSalaryComponents, useCreateSalaryComponent, useUpdateSalaryComponent, useDeleteSalaryComponent } from '@/hooks/useSalaryComponents';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+import { DateInput } from '@/components/ui/date-picker';
 
 export default function Payroll() {
   const { role } = useAuth();
@@ -74,10 +75,10 @@ export default function Payroll() {
               <DialogHeader><DialogTitle>Create Payroll Period</DialogTitle></DialogHeader>
               <form onSubmit={handleCreatePeriod} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label>Period Start</Label><Input type="date" value={periodForm.period_start} onChange={(e) => setPeriodForm({ ...periodForm, period_start: e.target.value })} required /></div>
-                  <div><Label>Period End</Label><Input type="date" value={periodForm.period_end} onChange={(e) => setPeriodForm({ ...periodForm, period_end: e.target.value })} required /></div>
+                  <div><Label>Period Start</Label><DateInput value={periodForm.period_start} onChange={(v) => setPeriodForm({ ...periodForm, period_start: v })} /></div>
+                  <div><Label>Period End</Label><DateInput value={periodForm.period_end} onChange={(v) => setPeriodForm({ ...periodForm, period_end: v })} /></div>
                 </div>
-                <div><Label>Pay Date</Label><Input type="date" value={periodForm.pay_date} onChange={(e) => setPeriodForm({ ...periodForm, pay_date: e.target.value })} required /></div>
+                <div><Label>Pay Date</Label><DateInput value={periodForm.pay_date} onChange={(v) => setPeriodForm({ ...periodForm, pay_date: v })} /></div>
                 <Button type="submit" className="w-full" disabled={createPeriod.isPending}>{createPeriod.isPending ? 'Creating...' : 'Create Period'}</Button>
               </form>
             </DialogContent>

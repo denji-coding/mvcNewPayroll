@@ -172,7 +172,7 @@ export function AppSidebar() {
                           rel="noopener noreferrer"
                           className="flex items-center gap-3"
                         >
-                          <item.icon className="w-5 h-5" />
+                          <item.icon className="w-5 h-5 flex-shrink-0" />
                           {!collapsed && <span>{item.title}</span>}
                         </a>
                       ) : (
@@ -182,7 +182,7 @@ export function AppSidebar() {
                           className="flex items-center gap-3"
                           activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
                         >
-                          <item.icon className="w-5 h-5" />
+                          <item.icon className="w-5 h-5 flex-shrink-0" />
                           {!collapsed && <span>{item.title}</span>}
                         </NavLink>
                       )}
@@ -215,7 +215,7 @@ export function AppSidebar() {
                         className="flex items-center gap-3"
                         activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
                       >
-                        <item.icon className="w-5 h-5" />
+                        <item.icon className="w-5 h-5 flex-shrink-0" />
                         {!collapsed && <span>{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
