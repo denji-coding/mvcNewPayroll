@@ -544,6 +544,36 @@ export type Database = {
           },
         ]
       }
+      leave_types: {
+        Row: {
+          created_at: string
+          default_credits: number
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_credits?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_credits?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loans: {
         Row: {
           created_at: string | null
