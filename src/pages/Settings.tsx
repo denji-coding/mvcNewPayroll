@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Edit, Trash2, Calendar, Megaphone, Users, Building, Clock, Shield, Sun, Moon, Monitor } from 'lucide-react';
 import { format } from 'date-fns';
+import { DateInput } from '@/components/ui/date-picker';
 import { useAuth } from '@/hooks/useAuth';
 import { useBranches } from '@/hooks/useBranches';
 import { useHolidays, useCreateHoliday, useUpdateHoliday, useDeleteHoliday } from '@/hooks/useHolidays';
@@ -520,10 +521,9 @@ function HolidayManagement() {
                   </div>
                   <div className="space-y-2">
                     <Label>Date</Label>
-                    <Input
-                      type="date"
+                    <DateInput
                       value={form.date}
-                      onChange={(e) => setForm({ ...form, date: e.target.value })}
+                      onChange={(v) => setForm({ ...form, date: v })}
                     />
                   </div>
                   <div className="space-y-2">

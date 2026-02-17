@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLeaveRequests, useCreateLeaveRequest, useApproveLeaveRequest, useLeaveCredits, calculateWorkingDays } from '@/hooks/useLeaves';
+import { useLeaveTypes } from '@/hooks/useLeaveTypes';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,8 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
- import { DatePicker } from '@/components/ui/date-picker';
- import { Plus, CheckCircle, XCircle, Upload, Heart, Palmtree, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Plus, CheckCircle, XCircle, Upload, Heart, Palmtree, AlertTriangle, Baby, Flower2, CloudRain, Ban, CalendarDays } from 'lucide-react';
 import { format, startOfToday, isBefore, isAfter } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,18 +20,44 @@ import { toast } from 'sonner';
 import { usePagination } from '@/hooks/usePagination';
 import { TablePagination } from '@/components/TablePagination';
 
-const LEAVE_TYPES = [
-  { value: 'sick', label: 'Sick Leave', icon: Heart, defaultCredits: 2, color: 'text-destructive' },
-  { value: 'vacation', label: 'Vacation Leave', icon: Palmtree, defaultCredits: 1, color: 'text-success' },
-  { value: 'emergency', label: 'Emergency Leave', icon: AlertTriangle, defaultCredits: 2, color: 'text-warning' },
-];
+// Map leave type names to icons and colors
+const LEAVE_TYPE_ICON_MAP: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
+  'sick': { icon: Heart, color: 'text-destructive' },
+  'vacation': { icon: Palmtree, color: 'text-success' },
+  'emergency': { icon: AlertTriangle, color: 'text-warning' },
+  'maternity': { icon: Baby, color: 'text-pink-500' },
+  'paternity': { icon: Baby, color: 'text-blue-500' },
+  'bereavement': { icon: Flower2, color: 'text-muted-foreground' },
+  'unpaid': { icon: Ban, color: 'text-muted-foreground' },
+};
+
+const getLeaveTypeVisuals = (name: string) => {
+  const lower = name.toLowerCase();
+  for (const [key, val] of Object.entries(LEAVE_TYPE_ICON_MAP)) {
+    if (lower.includes(key)) return val;
+  }
+  return { icon: CalendarDays, color: 'text-primary' };
+};
 
 export default function Leaves() {
   const { role, user } = useAuth();
   const { data: leaves, isLoading } = useLeaveRequests();
   const { data: credits } = useLeaveCredits();
+  const { data: leaveTypes } = useLeaveTypes();
   const createLeave = useCreateLeaveRequest();
   const approveLeave = useApproveLeaveRequest();
+
+  // Build dynamic leave types from database
+  const activeLeaveTypes = (leaveTypes || []).filter(lt => lt.is_active).map(lt => {
+    const visuals = getLeaveTypeVisuals(lt.name);
+    // Map name to enum value
+    const nameToEnum: Record<string, string> = {
+      'Sick Leave': 'sick', 'Vacation Leave': 'vacation', 'Emergency Leave': 'emergency',
+      'Maternity/Paternity Leave': 'maternity', 'Bereavement Leave': 'bereavement', 'Unpaid Leave': 'unpaid',
+    };
+    const enumVal = nameToEnum[lt.name] || lt.name.toLowerCase().replace(/\s+/g, '_');
+    return { value: enumVal, label: lt.name, icon: visuals.icon, defaultCredits: lt.default_credits, color: visuals.color };
+  });
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ leave_type: '', reason: '' });
@@ -180,7 +207,7 @@ export default function Leaves() {
                 <Select value={form.leave_type} onValueChange={(v) => setForm({ ...form, leave_type: v })}>
                   <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                   <SelectContent>
-                    {LEAVE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    {activeLeaveTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -265,7 +292,7 @@ export default function Leaves() {
         <CardContent>
           {credits && credits.length > 0 ? (
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-              {LEAVE_TYPES.map((leaveType) => {
+              {activeLeaveTypes.map((leaveType) => {
                 const credit = credits.find((c: any) => c.leave_type === leaveType.value);
                 const total = credit?.total_credits || 0;
                 const used = credit?.used_credits || 0;
@@ -288,9 +315,9 @@ export default function Leaves() {
                       <p className="text-sm font-medium">{leaveType.label}</p>
                       <div className="flex items-baseline gap-1">
                         <span className={cn("text-2xl font-bold", isLow && "text-destructive")}>{available}</span>
-                        <span className="text-sm text-muted-foreground">/ {total} days</span>
+                        <span className="text-sm text-muted-foreground">/ {total}</span>
                       </div>
-                      {used > 0 && <p className="text-xs text-muted-foreground">{used} day(s) used</p>}
+                      {used > 0 && <p className="text-xs text-muted-foreground">{used} used</p>}
                     </div>
                   </div>
                 );

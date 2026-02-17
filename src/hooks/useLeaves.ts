@@ -295,11 +295,11 @@ export function useApproveLeaveRequest() {
             .single();
           
           if (creditRecord) {
-            // Deduct the days from leave credits
+            // Deduct 1 credit per application (not per day)
             await supabase
               .from('leave_credits')
               .update({ 
-                used_credits: (creditRecord.used_credits || 0) + leaveRequest.total_days 
+                used_credits: (creditRecord.used_credits || 0) + 1 
               })
               .eq('id', creditRecord.id);
           }
