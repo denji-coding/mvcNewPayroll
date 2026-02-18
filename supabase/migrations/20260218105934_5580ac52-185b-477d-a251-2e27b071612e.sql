@@ -1,0 +1,1 @@
+ALTER TABLE public.leave_requests ADD COLUMN pay_type text NOT NULL DEFAULT 'with_pay';
