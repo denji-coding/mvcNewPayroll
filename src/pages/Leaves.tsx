@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DatePicker } from '@/components/ui/date-picker';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Plus, CheckCircle, XCircle, Upload, Heart, Palmtree, AlertTriangle, Baby, Flower2, CloudRain, Ban, CalendarDays } from 'lucide-react';
 import { format, startOfToday, isBefore, isAfter } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -60,7 +61,7 @@ export default function Leaves() {
   });
 
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ leave_type: '', reason: '' });
+  const [form, setForm] = useState({ leave_type: '', reason: '', pay_type: 'with_pay' as 'with_pay' | 'without_pay' });
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [reviewLeave, setReviewLeave] = useState<any>(null);
@@ -146,9 +147,10 @@ export default function Leaves() {
         total_days: calculatedDays,
         reason: form.reason || null,
         medical_certificate_url: medicalCertUrl,
+        pay_type: form.pay_type,
       }, {
         onSuccess: () => {
-          setForm({ leave_type: '', reason: '' });
+          setForm({ leave_type: '', reason: '', pay_type: 'with_pay' });
           setStartDate(undefined);
           setEndDate(undefined);
           setMedicalFile(null);
@@ -212,6 +214,19 @@ export default function Leaves() {
                 </Select>
               </div>
               
+              <div className="space-y-2">
+                <Label>Pay Type</Label>
+                <RadioGroup value={form.pay_type} onValueChange={(v) => setForm({ ...form, pay_type: v as 'with_pay' | 'without_pay' })} className="flex gap-4">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="with_pay" id="with_pay" />
+                    <Label htmlFor="with_pay" className="cursor-pointer">With Pay</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="without_pay" id="without_pay" />
+                    <Label htmlFor="without_pay" className="cursor-pointer">Without Pay</Label>
+                  </div>
+                </RadioGroup>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Start Date</Label>
@@ -291,7 +306,7 @@ export default function Leaves() {
         </CardHeader>
         <CardContent>
           {credits && credits.length > 0 ? (
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {activeLeaveTypes.map((leaveType) => {
                 const credit = credits.find((c: any) => c.leave_type === leaveType.value);
                 const total = credit?.total_credits || 0;
@@ -311,8 +326,8 @@ export default function Leaves() {
                     <div className={cn("p-2 rounded-full bg-background", leaveType.color)}>
                       <Icon className="h-5 w-5" />
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{leaveType.label}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{leaveType.label}</p>
                       <div className="flex items-baseline gap-1">
                         <span className={cn("text-2xl font-bold", isLow && "text-destructive")}>{available}</span>
                         <span className="text-sm text-muted-foreground">/ {total}</span>
@@ -340,6 +355,7 @@ export default function Leaves() {
                 <TableRow>
                   <TableHead>Employee</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Pay Type</TableHead>
                   <TableHead>Start</TableHead>
                   <TableHead>End</TableHead>
                   <TableHead>Days</TableHead>
@@ -351,7 +367,7 @@ export default function Leaves() {
                 {isLoading ? (
                   [1, 2, 3].map(i => (
                     <TableRow key={i}>
-                      {[1, 2, 3, 4, 5, 6, 7].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(j => <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>)}
                     </TableRow>
                   ))
                 ) : paginatedItems.length > 0 ? (
@@ -359,6 +375,7 @@ export default function Leaves() {
                     <TableRow key={l.id}>
                       <TableCell>{l.employees?.first_name} {l.employees?.last_name}</TableCell>
                       <TableCell className="capitalize">{l.leave_type}</TableCell>
+                      <TableCell className="capitalize">{(l.pay_type || 'with_pay').replace('_', ' ')}</TableCell>
                       <TableCell>{format(new Date(l.start_date), 'MMM d, yyyy')}</TableCell>
                       <TableCell>{format(new Date(l.end_date), 'MMM d, yyyy')}</TableCell>
                       <TableCell>{l.total_days}</TableCell>

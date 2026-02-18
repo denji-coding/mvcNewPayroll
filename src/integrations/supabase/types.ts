@@ -490,6 +490,7 @@ export type Database = {
           manager_id: string | null
           manager_remarks: string | null
           medical_certificate_url: string | null
+          pay_type: string
           reason: string | null
           start_date: string
           status: Database["public"]["Enums"]["leave_status"] | null
@@ -509,6 +510,7 @@ export type Database = {
           manager_id?: string | null
           manager_remarks?: string | null
           medical_certificate_url?: string | null
+          pay_type?: string
           reason?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["leave_status"] | null
@@ -528,6 +530,7 @@ export type Database = {
           manager_id?: string | null
           manager_remarks?: string | null
           medical_certificate_url?: string | null
+          pay_type?: string
           reason?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["leave_status"] | null

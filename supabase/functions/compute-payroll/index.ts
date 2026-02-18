@@ -235,6 +235,29 @@ serve(async (req) => {
         .gte('date', period.period_start)
         .lte('date', period.period_end);
 
+      // Get approved leaves for the period
+      const { data: leaveRequests } = await supabase
+        .from('leave_requests')
+        .select('*')
+        .eq('employee_id', employee.id)
+        .eq('status', 'hr_approved')
+        .lte('start_date', period.period_end)
+        .gte('end_date', period.period_start);
+
+      // Calculate leave days within the period
+      let leaveWithPayDays = 0;
+      let leaveWithoutPayDays = 0;
+      for (const leave of leaveRequests || []) {
+        const leaveStart = new Date(Math.max(new Date(leave.start_date).getTime(), periodStart.getTime()));
+        const leaveEnd = new Date(Math.min(new Date(leave.end_date).getTime(), periodEnd.getTime()));
+        const leaveDays = calculateWorkingDays(leaveStart, leaveEnd);
+        if (leave.pay_type === 'without_pay') {
+          leaveWithoutPayDays += leaveDays;
+        } else {
+          leaveWithPayDays += leaveDays;
+        }
+      }
+
       const daysWorked = attendance?.filter(a => a.status !== 'absent').length || 0;
       const totalOvertimeHours = attendance?.reduce((sum, a) => sum + (parseFloat(a.overtime_hours) || 0), 0) || 0;
 
@@ -250,6 +273,7 @@ serve(async (req) => {
       const hourlyRate = dailyRate / 8;
       const basicPay = dailyRate * daysWorked;
       const overtimePay = hourlyRate * 1.25 * totalOvertimeHours;
+      const leavePay = dailyRate * leaveWithPayDays;
 
       // Allowances
       let totalAllowances = 0;
@@ -258,9 +282,13 @@ serve(async (req) => {
         totalAllowances += parseFloat(adj.amount);
         allowancesBreakdown[adj.salary_components.name] = parseFloat(adj.amount);
       });
+      // Add leave pay to allowances breakdown
+      if (leaveWithPayDays > 0) {
+        allowancesBreakdown[`Leave With Pay (${leaveWithPayDays} days)`] = Math.round(leavePay * 100) / 100;
+      }
 
-      // Calculate gross pay
-      const grossPay = basicPay + overtimePay + totalAllowances;
+      // Calculate gross pay (include leave pay)
+      const grossPay = basicPay + overtimePay + totalAllowances + leavePay;
 
       // Monthly equivalent for contribution calculations
       const monthlyGross = grossPay * 2; // Semi-monthly payroll
@@ -286,6 +314,9 @@ serve(async (req) => {
         otherDeductions += parseFloat(adj.amount);
         deductionsBreakdown[adj.salary_components.name] = parseFloat(adj.amount);
       });
+      if (leaveWithoutPayDays > 0) {
+        deductionsBreakdown[`Leave Without Pay (${leaveWithoutPayDays} days)`] = 0;
+      }
 
       const totalDeductions = sssContribution + philhealthContribution + pagibigContribution + withholdingTax + otherDeductions;
       const netPay = grossPay - totalDeductions;
