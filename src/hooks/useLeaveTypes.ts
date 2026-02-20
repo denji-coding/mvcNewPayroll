@@ -44,12 +44,11 @@ export function useCreateLeaveType() {
         .single();
       if (error) throw error;
 
-      // If applyToAll, create leave_credits for all active employees
+      // If applyToAll, create leave_credits for all employees (regardless of status)
       if (applyToAll) {
         const { data: employees } = await supabase
           .from('employees')
-          .select('id')
-          .eq('employment_status', 'active');
+          .select('id');
 
         if (employees && employees.length > 0) {
           const currentYear = new Date().getFullYear();
