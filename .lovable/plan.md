@@ -1,61 +1,80 @@
 
-# Fix and Enhance Leave, Sidebar, and Payroll
 
-## 1. Leave With Pay / Without Pay Option
+# Plan: Leave Credits, Sidebar Fix, Payroll Loading, and Data Table
 
-**What changes:** When employees apply for leave, they will see a new "Pay Type" option to choose between "Leave With Pay" and "Leave Without Pay." Employees get 3 days of leave with pay per month. Unused leave credits will be tracked for year-end cash conversion.
+## 1. Auto-assign leave credits to all employees (including on new employee creation)
 
-**Technical details:**
-- Add a `pay_type` column to `leave_requests` table (text, default 'with_pay', values: 'with_pay' or 'without_pay')
-- Update the leave form in `src/pages/Leaves.tsx` to add a radio group for pay type selection
-- Update `src/hooks/useLeaves.ts` to pass `pay_type` when creating a leave request
-- The existing monthly credit refresh and leave_types table already handle the 3-credit-per-month logic
-- Add a note in the Leave Credits page about year-end cash conversion policy (this is an HR manual process)
-
-## 2. Sidebar Scroll Fix When Collapsed
-
-**What changes:** When the sidebar is collapsed, menu items below the visible area will become scrollable instead of hidden.
+**What changes:**
+- Create a database trigger that automatically inserts leave credits for a new employee whenever they are added to the `employees` table. The trigger will read all active leave types and create corresponding `leave_credits` records.
+- Update the `create-employee` edge function to also assign leave credits after creating the employee record (as a fallback).
+- This ensures HR admins, branch managers, and regular employees all get leave credits automatically.
 
 **Technical details:**
-- In `src/components/ui/sidebar.tsx`, remove `group-data-[collapsible=icon]:overflow-hidden` from `SidebarContent` and replace with `group-data-[collapsible=icon]:overflow-auto` so icons remain scrollable in collapsed mode
+- New database migration: create a function `assign_leave_credits_to_employee()` that queries `leave_types` where `is_active = true` and inserts into `leave_credits` for the given employee. A trigger `on_employee_created` fires after INSERT on `employees`.
+- Also update `useCreateLeaveType` hook: when "Apply to all employees" is checked, ensure ALL employees get credits (not just active ones with a specific status filter issue).
 
-## 3. Leave Integration in Payroll Calculation
+## 2. Fix sidebar layout (remove scroll, adjust spacing)
 
-**What changes:** The payroll computation will detect approved leaves during the pay period. Leave with pay days will be added to earnings. Leave without pay days will result in deductions. Leave details will appear on the payslip PDF.
-
-**Technical details:**
-- Update `supabase/functions/compute-payroll/index.ts` to:
-  - Query `leave_requests` for each employee where dates overlap the payroll period and status is 'hr_approved'
-  - For "with pay" leaves: add leave days to paid days (leave_pay = daily_rate x leave_days)
-  - For "without pay" leaves: track as unpaid days
-  - Store leave breakdown in `deductions_breakdown` or `allowances_breakdown` JSON fields
-- Update `src/lib/generatePayslipPdf.ts` to display leave details (leave with pay as an earning, leave without pay noted)
-- Add a `leave_pay` line item in the payslip earnings section showing "Leave With Pay (X days)"
-
-## 4. Fix Leave Credit Card Text Overlap
-
-**What changes:** Long leave type names will no longer overlap with the credit numbers.
+**What changes:**
+- Remove the scroll behavior inside the sidebar and adjust the spacing/padding so all menu items fit without needing to scroll.
+- Reduce padding on sidebar header, groups, and menu items to make everything more compact.
 
 **Technical details:**
-- In `src/pages/Leaves.tsx`, update the leave credits card layout:
-  - Add `min-w-0` to the text container for proper text truncation
-  - Add `truncate` class to the leave type label
-  - Adjust the grid to use `sm:grid-cols-2 lg:grid-cols-3` instead of `sm:grid-cols-3` for better spacing
-  - Make the credits display use `whitespace-nowrap` to prevent wrapping
+- In `src/components/layout/AppSidebar.tsx`: reduce padding on the header (from `p-4` to `p-3`), reduce gap between groups, and use smaller text/spacing for labels.
+- In `src/components/ui/sidebar.tsx`: keep `overflow-auto` as a safety fallback but ensure content fits by reducing default spacing in `SidebarGroup` and `SidebarMenuItem` components (reduce `gap-2` to `gap-1`, reduce padding).
 
-## Files to Modify
+## 3. Add loading indicators for payroll processing
 
-| File | Change |
-|------|--------|
-| `supabase/migrations/` (new) | Add `pay_type` column to `leave_requests` |
-| `src/pages/Leaves.tsx` | Add pay type radio group in form; fix card text overlap |
-| `src/hooks/useLeaves.ts` | Include `pay_type` in leave request creation |
-| `src/components/ui/sidebar.tsx` | Fix overflow in collapsed mode |
-| `supabase/functions/compute-payroll/index.ts` | Query leaves, calculate leave pay, include in payroll |
-| `src/lib/generatePayslipPdf.ts` | Add leave details to payslip PDF |
+**What changes:**
+- Show a loading spinner and disabled state on Run Payroll and Approve Payroll buttons while processing.
+- Add a full overlay or inline loading indicator on the payroll records table during computation.
 
-## Implementation Order
-1. Database migration (add `pay_type` column)
-2. Sidebar scroll fix (quick CSS change)
-3. Leave form and card text fixes
-4. Payroll leave integration and payslip update
+**Technical details:**
+- In `src/pages/Payroll.tsx`: use `runPayroll.isPending` and `approvePayroll.isPending` to show spinner text like "Processing..." and "Approving..." on the respective buttons, and disable them.
+- Add a loading overlay card when either operation is pending.
+
+## 4. Install TanStack React Table and create a reusable DataTable component
+
+**What changes:**
+- Install `@tanstack/react-table` package.
+- Create a reusable `DataTable` component with built-in sorting, filtering (global search), and pagination.
+- Replace the current manual table implementations on 9 pages: Employees, Positions, Branches, Time Schedules, Attendance, Leaves, Leave Credits, Payroll, and My Payslips.
+
+**Technical details:**
+
+### New files:
+| File | Purpose |
+|------|---------|
+| `src/components/ui/data-table.tsx` | Reusable DataTable component with TanStack React Table |
+
+### DataTable component features:
+- Accepts `columns` (ColumnDef array) and `data` props
+- Built-in sorting (clickable column headers with sort indicators)
+- Built-in global filter/search input
+- Built-in pagination (configurable page size, page controls)
+- Uses existing ShadCN `Table` components for rendering
+- Optional `searchPlaceholder` and `searchColumn` props
+
+### Pages to update:
+Each page will define its columns using `ColumnDef` and pass data to the `DataTable` component, replacing the manual `Table` + `TablePagination` pattern.
+
+| Page | Key changes |
+|------|-------------|
+| `src/pages/Employees.tsx` | Define columns for Employee ID, Name, Position, Branch, Status, Actions |
+| `src/pages/Positions.tsx` | Define columns for Name, Description, Status, Actions |
+| `src/pages/Branches.tsx` | Define columns for Code, Name, Manager, Employees, Contact, Status, Actions |
+| `src/pages/TimeSchedule.tsx` | Define columns for assigned schedules table |
+| `src/pages/Attendance.tsx` | Define columns for attendance records |
+| `src/pages/Leaves.tsx` | Define columns for leave requests table |
+| `src/pages/LeaveCredits.tsx` | Define columns for leave types management table |
+| `src/pages/Payroll.tsx` | Define columns for payroll periods and records tables |
+| `src/pages/MyPayslips.tsx` | Define columns for payroll history table |
+
+### Implementation order:
+1. Database migration (auto-assign leave credits trigger)
+2. Install `@tanstack/react-table` dependency
+3. Create `DataTable` component
+4. Fix sidebar spacing
+5. Add payroll loading indicators
+6. Update all 9 pages to use DataTable
+
