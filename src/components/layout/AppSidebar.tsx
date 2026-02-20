@@ -134,15 +134,15 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-      <SidebarHeader className="border-b border-sidebar-border p-4">
+      <SidebarHeader className="border-b border-sidebar-border p-2">
         <div className="flex flex-col items-center justify-center">
           <img 
             src={companyLogo} 
             alt="Migrant Venture Corporation" 
-            className={`object-contain flex-shrink-0 ${collapsed ? 'h-8 w-8' : 'w-12 h-12'}`}
+            className={`object-contain flex-shrink-0 ${collapsed ? 'h-7 w-7' : 'w-10 h-10'}`}
           />
           {!collapsed && (
-            <span className="font-semibold text-sidebar-foreground text-center text-sm mt-2 leading-tight">
+            <span className="font-semibold text-sidebar-foreground text-center text-xs mt-1 leading-tight">
               Migrant Venture Corporation
             </span>
           )}
@@ -170,20 +170,20 @@ export function AppSidebar() {
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-3"
+                          className="flex items-center gap-2"
                         >
-                          <item.icon className="w-5 h-5 flex-shrink-0" />
-                          {!collapsed && <span>{item.title}</span>}
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                          {!collapsed && <span className="text-sm">{item.title}</span>}
                         </a>
                       ) : (
                         <NavLink
                           to={item.url}
                           end={item.url === '/'}
-                          className="flex items-center gap-3"
+                          className="flex items-center gap-2"
                           activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
                         >
-                          <item.icon className="w-5 h-5 flex-shrink-0" />
-                          {!collapsed && <span>{item.title}</span>}
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                          {!collapsed && <span className="text-sm">{item.title}</span>}
                         </NavLink>
                       )}
                     </SidebarMenuButton>
@@ -212,11 +212,11 @@ export function AppSidebar() {
                       <NavLink
                         to={item.url}
                         end={item.url === '/'}
-                        className="flex items-center gap-3"
+                        className="flex items-center gap-2"
                         activeClassName="bg-sidebar-accent text-sidebar-accent-foreground"
                       >
-                        <item.icon className="w-5 h-5 flex-shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
+                        <item.icon className="w-4 h-4 flex-shrink-0" />
+                        {!collapsed && <span className="text-sm">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

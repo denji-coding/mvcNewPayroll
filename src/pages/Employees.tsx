@@ -2,24 +2,20 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Edit, Trash2, RotateCcw, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, RotateCcw, Eye } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { usePagination } from '@/hooks/usePagination';
-import { TablePagination } from '@/components/TablePagination';
 import { useAuth } from '@/hooks/useAuth';
 import { EmployeeAvatar } from '@/components/employees/EmployeeAvatar';
 import { EmployeeViewModal } from '@/components/employees/EmployeeViewModal';
+import { DataTable, ColumnDef } from '@/components/ui/data-table';
 
 export default function Employees() {
   const { role } = useAuth();
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'active' | 'inactive' | 'deleted'>('active');
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
 
@@ -52,12 +48,7 @@ export default function Employees() {
       .from('employees')
       .update({ employment_status: 'terminated' })
       .eq('id', id);
-    
-    if (error) {
-      toast.error('Failed to delete employee');
-      return;
-    }
-    
+    if (error) { toast.error('Failed to delete employee'); return; }
     toast.success(`${name} has been deactivated`);
     fetchEmployees();
   };
@@ -67,24 +58,10 @@ export default function Employees() {
       .from('employees')
       .update({ employment_status: 'active' })
       .eq('id', id);
-    
-    if (error) {
-      toast.error('Failed to restore employee');
-      return;
-    }
-    
+    if (error) { toast.error('Failed to restore employee'); return; }
     toast.success(`${name} has been restored`);
     fetchEmployees();
   };
-
-  const filteredEmployees = employees.filter(
-    (emp) =>
-      emp.first_name.toLowerCase().includes(search.toLowerCase()) ||
-      emp.last_name.toLowerCase().includes(search.toLowerCase()) ||
-      emp.employee_id.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const { currentPage, setCurrentPage, totalPages, paginatedItems } = usePagination(filteredEmployees, 10);
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -96,6 +73,77 @@ export default function Employees() {
     };
     return <span className={`px-2 py-1 rounded text-xs font-medium ${styles[status] || 'bg-muted text-muted-foreground'}`}>{status}</span>;
   };
+
+  const columns: ColumnDef<any, any>[] = [
+    {
+      id: 'avatar',
+      header: '',
+      cell: ({ row }) => (
+        <EmployeeAvatar firstName={row.original.first_name} lastName={row.original.last_name} avatarUrl={row.original.avatar_url} gender={row.original.gender} />
+      ),
+      enableSorting: false,
+    },
+    { accessorKey: 'employee_id', header: 'Employee ID' },
+    {
+      id: 'name',
+      header: 'Name',
+      accessorFn: (row) => `${row.first_name} ${row.last_name}`,
+      cell: ({ row }) => `${row.original.first_name} ${row.original.last_name}`,
+    },
+    { accessorKey: 'position', header: 'Position' },
+    {
+      id: 'branch',
+      header: 'Branch',
+      accessorFn: (row) => row.branches?.name || '-',
+    },
+    {
+      accessorKey: 'employment_status',
+      header: 'Status',
+      cell: ({ getValue }) => getStatusBadge(getValue() as string),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const emp = row.original;
+        return (
+          <div className="flex gap-1">
+            <Button variant="ghost" size="icon" title="View" onClick={() => setSelectedEmployee(emp)}>
+              <Eye className="h-4 w-4" />
+            </Button>
+            {role === 'hr_admin' && (
+              <Button variant="ghost" size="icon" asChild>
+                <Link to={`/employees/${emp.id}`}><Edit className="h-4 w-4" /></Link>
+              </Button>
+            )}
+            {role === 'hr_admin' && viewMode === 'deleted' && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-success hover:text-success"><RotateCcw className="h-4 w-4" /></Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader><AlertDialogTitle>Restore Employee?</AlertDialogTitle><AlertDialogDescription>This will restore {emp.first_name} {emp.last_name} to active status.</AlertDialogDescription></AlertDialogHeader>
+                  <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleRestore(emp.id, `${emp.first_name} ${emp.last_name}`)}>Restore</AlertDialogAction></AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            {role === 'hr_admin' && viewMode !== 'deleted' && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader><AlertDialogTitle>Delete Employee?</AlertDialogTitle><AlertDialogDescription>This will set {emp.first_name} {emp.last_name}'s status to terminated.</AlertDialogDescription></AlertDialogHeader>
+                  <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleSoftDelete(emp.id, `${emp.first_name} ${emp.last_name}`)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
 
   return (
     <div className="page-container">
@@ -110,145 +158,29 @@ export default function Employees() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-4">
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'active' | 'inactive' | 'deleted')}>
-              <TabsList>
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="inactive">Inactive</TabsTrigger>
-                <TabsTrigger value="deleted">Deleted</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search employees..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
-          </div>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'active' | 'inactive' | 'deleted')}>
+            <TabsList>
+              <TabsTrigger value="active">Active</TabsTrigger>
+              <TabsTrigger value="inactive">Inactive</TabsTrigger>
+              <TabsTrigger value="deleted">Deleted</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
           ) : (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12"></TableHead>
-                      <TableHead>Employee ID</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Branch</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedItems.map((emp) => (
-                      <TableRow key={emp.id}>
-                        <TableCell>
-                          <EmployeeAvatar
-                            firstName={emp.first_name}
-                            lastName={emp.last_name}
-                            avatarUrl={emp.avatar_url}
-                            gender={emp.gender}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">{emp.employee_id}</TableCell>
-                        <TableCell>{emp.first_name} {emp.last_name}</TableCell>
-                        <TableCell>{emp.position}</TableCell>
-                        <TableCell>{emp.branches?.name || '-'}</TableCell>
-                        <TableCell>{getStatusBadge(emp.employment_status)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" title="View" onClick={() => setSelectedEmployee(emp)}>
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            {role === 'hr_admin' && (
-                              <Button variant="ghost" size="icon" asChild>
-                                <Link to={`/employees/${emp.id}`}><Edit className="h-4 w-4" /></Link>
-                              </Button>
-                            )}
-                            {role === 'hr_admin' && viewMode === 'deleted' && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-success hover:text-success">
-                                    <RotateCcw className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Restore Employee?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will restore {emp.first_name} {emp.last_name} to active status.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                      onClick={() => handleRestore(emp.id, `${emp.first_name} ${emp.last_name}`)}
-                                    >
-                                      Restore
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
-                            {role === 'hr_admin' && viewMode !== 'deleted' && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Employee?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will set {emp.first_name} {emp.last_name}'s status to terminated. 
-                                      You can restore them later from the "Deleted" tab.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction 
-                                      onClick={() => handleSoftDelete(emp.id, `${emp.first_name} ${emp.last_name}`)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {paginatedItems.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                          {viewMode === 'active' ? 'No active employees found' : viewMode === 'inactive' ? 'No inactive employees found' : 'No deleted employees'}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              <TablePagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
-            </>
+            <DataTable
+              columns={columns}
+              data={employees}
+              searchPlaceholder="Search employees..."
+              emptyMessage={viewMode === 'active' ? 'No active employees found' : viewMode === 'inactive' ? 'No inactive employees found' : 'No deleted employees'}
+            />
           )}
         </CardContent>
       </Card>
 
-      <EmployeeViewModal
-        employee={selectedEmployee}
-        open={!!selectedEmployee}
-        onClose={() => setSelectedEmployee(null)}
-      />
+      <EmployeeViewModal employee={selectedEmployee} open={!!selectedEmployee} onClose={() => setSelectedEmployee(null)} />
     </div>
   );
 }
