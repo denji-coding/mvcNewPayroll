@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Bell, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -19,7 +20,25 @@ import { formatDistanceToNow } from 'date-fns';
 export function AppHeader() {
   const { user } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user?.id);
-  const { theme, setTheme } = useTheme();
+  const { setTheme } = useTheme();
+
+  // Resolve the actual applied theme (handles 'system' properly)
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+
+  useEffect(() => {
+    const updateResolved = () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      setResolvedTheme(isDark ? 'dark' : 'light');
+    };
+    updateResolved();
+    const observer = new MutationObserver(updateResolved);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  };
 
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4 sticky top-0 z-10">
@@ -32,10 +51,10 @@ export function AppHeader() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          onClick={toggleTheme}
+          title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          {resolvedTheme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </Button>
 
         {/* Notifications */}
