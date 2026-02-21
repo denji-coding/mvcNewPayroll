@@ -81,13 +81,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('first_name, last_name, email, avatar_url, must_change_password')
         .eq('id', userId)
         .maybeSingle();
+
+      // Also fetch employee avatar if profile avatar is not set
+      let avatarUrl = profileData?.avatar_url ?? undefined;
+      if (!avatarUrl) {
+        const { data: empData } = await supabase
+          .from('employees')
+          .select('avatar_url')
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (empData?.avatar_url) {
+          avatarUrl = empData.avatar_url;
+        }
+      }
       
       if (profileData) {
         setProfile({
           firstName: profileData.first_name,
           lastName: profileData.last_name,
           email: profileData.email,
-          avatarUrl: profileData.avatar_url ?? undefined,
+          avatarUrl,
           mustChangePassword: profileData.must_change_password ?? false,
         });
       }

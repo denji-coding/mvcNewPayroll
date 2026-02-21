@@ -5,12 +5,13 @@ import { useAllLeaveCredits } from '@/hooks/useLeaves';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Eye, EyeOff, Trash2, CheckSquare, RefreshCw } from 'lucide-react';
+import { Plus, Eye, EyeOff, Trash2, CheckSquare, RefreshCw, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DataTable, ColumnDef } from '@/components/ui/data-table';
 
@@ -23,7 +24,10 @@ export default function LeaveCredits() {
   const deleteLeaveType = useDeleteLeaveType();
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingType, setEditingType] = useState<any>(null);
   const [form, setForm] = useState({ name: '', default_credits: '', description: '', applyToAll: true });
+  const [editForm, setEditForm] = useState({ name: '', default_credits: '', description: '' });
 
   const handleAddLeaveType = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,8 +37,21 @@ export default function LeaveCredits() {
     });
   };
 
+  const handleEditLeaveType = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingType || !editForm.name || !editForm.default_credits) return;
+    updateLeaveType.mutate({ id: editingType.id, name: editForm.name, default_credits: parseFloat(editForm.default_credits), description: editForm.description || null }, {
+      onSuccess: () => { setEditingType(null); setEditDialogOpen(false); },
+    });
+  };
+
+  const openEditDialog = (lt: any) => {
+    setEditingType(lt);
+    setEditForm({ name: lt.name, default_credits: lt.default_credits.toString(), description: lt.description || '' });
+    setEditDialogOpen(true);
+  };
+
   const handleToggleActive = (id: string, currentActive: boolean) => updateLeaveType.mutate({ id, is_active: !currentActive });
-  const handleDelete = (id: string) => { if (confirm('Delete this leave type?')) deleteLeaveType.mutate(id); };
 
   const getTotalTaken = (leaveTypeName: string) => {
     if (!allCredits) return 0;
@@ -73,10 +90,27 @@ export default function LeaveCredits() {
         const lt = row.original;
         return (
           <div className="flex items-center gap-1">
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:text-primary" onClick={() => openEditDialog(lt)} title="Edit">
+              <Edit className="h-4 w-4" />
+            </Button>
             <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:text-primary" onClick={() => handleToggleActive(lt.id, lt.is_active)} title={lt.is_active ? 'Deactivate' : 'Activate'}>
               {lt.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(lt.id)} title="Delete"><Trash2 className="h-4 w-4" /></Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" title="Delete"><Trash2 className="h-4 w-4" /></Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Leave Type?</AlertDialogTitle>
+                  <AlertDialogDescription>Are you sure you want to delete "{lt.name}"? This action cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => deleteLeaveType.mutate(lt.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         );
       },
@@ -101,6 +135,7 @@ export default function LeaveCredits() {
         </CardContent>
       </Card>
 
+      {/* Add Leave Type Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Add Leave Type</DialogTitle></DialogHeader>
@@ -113,6 +148,19 @@ export default function LeaveCredits() {
               <div><Label htmlFor="applyToAll" className="font-semibold cursor-pointer">Apply to all existing employees</Label><p className="text-xs text-muted-foreground">If checked, all employees will get leave credits for this type.</p></div>
             </div>
             <DialogFooter><Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button><Button type="submit" disabled={createLeaveType.isPending}><Plus className="mr-2 h-4 w-4" /> Add Leave Type</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Leave Type Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={(open) => { setEditDialogOpen(open); if (!open) setEditingType(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Edit Leave Type</DialogTitle></DialogHeader>
+          <form onSubmit={handleEditLeaveType} className="space-y-4">
+            <div className="space-y-2"><Label>Leave Type Name</Label><Input placeholder="e.g., Sick Leave" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Default Allowed Days</Label><Input type="number" min="0" step="0.5" placeholder="Enter default days" value={editForm.default_credits} onChange={(e) => setEditForm({ ...editForm, default_credits: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Description</Label><Textarea placeholder="Enter description" value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} rows={3} /></div>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => { setEditDialogOpen(false); setEditingType(null); }}>Cancel</Button><Button type="submit" disabled={updateLeaveType.isPending}>{updateLeaveType.isPending ? 'Saving...' : 'Save Changes'}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

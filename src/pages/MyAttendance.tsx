@@ -6,14 +6,7 @@ import { Clock, AlertCircle, Calendar } from 'lucide-react';
 import { useTodayAttendance } from '@/hooks/useClockInOut';
 import { useEmployeeAttendance } from '@/hooks/useAttendance';
 import { format } from 'date-fns';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { DataTable, ColumnDef } from '@/components/ui/data-table';
 
 export default function MyAttendance() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -63,12 +56,8 @@ export default function MyAttendance() {
         <Card>
           <CardContent className="py-12 text-center">
             <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">
-              Your account is not linked to an employee record.
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Please contact HR to set up your employee profile.
-            </p>
+            <p className="text-muted-foreground">Your account is not linked to an employee record.</p>
+            <p className="text-sm text-muted-foreground mt-2">Please contact HR to set up your employee profile.</p>
           </CardContent>
         </Card>
       </div>
@@ -76,6 +65,16 @@ export default function MyAttendance() {
   }
 
   const attendance = data?.attendance;
+
+  const columns: ColumnDef<any, any>[] = [
+    { accessorKey: 'date', header: 'Date', cell: ({ getValue }) => format(new Date(getValue() as string), 'MMM d, yyyy') },
+    { id: 'am_in', header: 'AM In', accessorFn: (row) => row.morning_in || row.time_in, cell: ({ getValue }) => formatTime(getValue() as string) },
+    { id: 'am_out', header: 'AM Out', accessorFn: (row) => row.morning_out, cell: ({ getValue }) => formatTime(getValue() as string) },
+    { id: 'pm_in', header: 'PM In', accessorFn: (row) => row.afternoon_in, cell: ({ getValue }) => formatTime(getValue() as string) },
+    { id: 'pm_out', header: 'PM Out', accessorFn: (row) => row.afternoon_out || row.time_out, cell: ({ getValue }) => formatTime(getValue() as string) },
+    { accessorKey: 'hours_worked', header: 'Hours', cell: ({ getValue }) => getValue() || '-' },
+    { accessorKey: 'status', header: 'Status', cell: ({ getValue }) => getStatusBadge(getValue() as string) },
+  ];
 
   return (
     <div className="page-container">
@@ -96,14 +95,11 @@ export default function MyAttendance() {
         </CardContent>
       </Card>
 
-      {/* Today's Summary - 4 Time Format */}
+      {/* Today's Summary */}
       {attendance ? (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Today's Summary
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" />Today's Summary</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
@@ -139,103 +135,22 @@ export default function MyAttendance() {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Today's Summary
-            </CardTitle>
+            <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" />Today's Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-center text-muted-foreground py-4">
-              No attendance record for today. Please use the attendance terminal to clock in.
-            </p>
+            <p className="text-center text-muted-foreground py-4">No attendance record for today. Please use the attendance terminal to clock in.</p>
           </CardContent>
         </Card>
       )}
 
-      {/* Recent Attendance History - 4 Time Format */}
+      {/* Recent Attendance History */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Attendance</CardTitle>
-          <CardDescription>Your last 10 attendance records</CardDescription>
+          <CardDescription>Your attendance records</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>AM In</TableHead>
-                  <TableHead>AM Out</TableHead>
-                  <TableHead>PM In</TableHead>
-                  <TableHead>PM Out</TableHead>
-                  <TableHead>Hours</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentAttendance?.slice(0, 10).map((record: any) => (
-                  <TableRow key={record.id}>
-                    <TableCell className="whitespace-nowrap">{format(new Date(record.date), 'MMM d, yyyy')}</TableCell>
-                    <TableCell>{formatTime(record.morning_in || record.time_in)}</TableCell>
-                    <TableCell>{formatTime(record.morning_out)}</TableCell>
-                    <TableCell>{formatTime(record.afternoon_in)}</TableCell>
-                    <TableCell>{formatTime(record.afternoon_out || record.time_out)}</TableCell>
-                    <TableCell>{record.hours_worked || '-'}</TableCell>
-                    <TableCell>{getStatusBadge(record.status)}</TableCell>
-                  </TableRow>
-                ))}
-                {(!recentAttendance || recentAttendance.length === 0) && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      No attendance records found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile Card View */}
-          <div className="md:hidden space-y-3">
-            {recentAttendance?.slice(0, 10).map((record: any) => (
-              <div key={record.id} className="p-4 rounded-lg border bg-card">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-medium">{format(new Date(record.date), 'MMM d, yyyy')}</span>
-                  {getStatusBadge(record.status)}
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">AM In</p>
-                    <p className="font-medium">{formatTime(record.morning_in || record.time_in)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">AM Out</p>
-                    <p className="font-medium">{formatTime(record.morning_out)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">PM In</p>
-                    <p className="font-medium">{formatTime(record.afternoon_in)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">PM Out</p>
-                    <p className="font-medium">{formatTime(record.afternoon_out || record.time_out)}</p>
-                  </div>
-                </div>
-                {record.hours_worked && (
-                  <div className="mt-2 pt-2 border-t text-sm">
-                    <span className="text-muted-foreground">Total: </span>
-                    <span className="font-medium">{record.hours_worked} hours</span>
-                  </div>
-                )}
-              </div>
-            ))}
-            {(!recentAttendance || recentAttendance.length === 0) && (
-              <div className="text-center text-muted-foreground py-8">
-                No attendance records found
-              </div>
-            )}
-          </div>
+          <DataTable columns={columns} data={recentAttendance || []} searchPlaceholder="Search attendance..." emptyMessage="No attendance records found" />
         </CardContent>
       </Card>
     </div>
