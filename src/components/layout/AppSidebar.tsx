@@ -61,7 +61,7 @@ const adminNavigationItems: NavItem[] = [
   { title: 'Time Schedule', url: '/time-schedule', icon: CalendarClock, roles: ['hr_admin', 'employee'], permissionKey: 'page_time_schedule' },
   { title: 'Attendance Terminal', url: '/attendance-terminal', icon: MonitorSmartphone, roles: ['hr_admin'], external: true },
   { title: 'Attendance', url: '/attendance', icon: Clock, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_attendance' },
-  { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_leaves' },
+  { title: 'Leave Approvals', url: '/leave-approvals', icon: CalendarDays, roles: ['hr_admin', 'branch_manager'], permissionKey: 'page_leaves' },
   { title: 'Leave Credits', url: '/leave-credits', icon: CreditCard, roles: ['hr_admin'], permissionKey: 'page_leave_credits' },
   { title: 'Payroll', url: '/payroll', icon: DollarSign, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_payroll' },
   { title: 'Reports', url: '/reports', icon: FileText, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_reports' },
@@ -73,6 +73,7 @@ const employeePortalItems: NavItem[] = [
   { title: 'DTR', url: '/dtr', icon: ClipboardList, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_dtr' },
   { title: 'My Attendance', url: '/my-attendance', icon: IdCard, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_my_attendance' },
   { title: 'My Payslips', url: '/my-payslips', icon: FileText, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_my_payslips' },
+  { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_leaves' },
 ];
 
 export function AppSidebar() {
