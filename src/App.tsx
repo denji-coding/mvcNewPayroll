@@ -19,6 +19,7 @@ import ClockInOut from "./pages/ClockInOut";
 import MyAttendance from "./pages/MyAttendance";
 import AttendanceTerminal from "./pages/AttendanceTerminal";
 import Leaves from "./pages/Leaves";
+import LeaveApprovals from "./pages/LeaveApprovals";
 import Payroll from "./pages/Payroll";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
@@ -114,6 +115,7 @@ function AppRoutes() {
         <Route path="dtr" element={<DailyTimeRecord />} />
         <Route path="time-schedule" element={<TimeSchedule />} />
         <Route path="leaves" element={<Leaves />} />
+        <Route path="leave-approvals" element={<LeaveApprovals />} />
         <Route path="leave-credits" element={<LeaveCredits />} />
         <Route path="my-payslips" element={<MyPayslips />} />
         <Route path="payroll" element={<Payroll />} />

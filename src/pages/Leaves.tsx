@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useLeaveRequests, useCreateLeaveRequest, useApproveLeaveRequest, useLeaveCredits, calculateWorkingDays } from '@/hooks/useLeaves';
+import { useMyLeaveRequests, useCreateLeaveRequest, useLeaveCredits, calculateWorkingDays } from '@/hooks/useLeaves';
 import { useLeaveTypes } from '@/hooks/useLeaveTypes';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
 import { DatePicker } from '@/components/ui/date-picker';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus, CheckCircle, XCircle, Upload, Heart, Palmtree, AlertTriangle, Baby, Flower2, CloudRain, Ban, CalendarDays } from 'lucide-react';
+import { Plus, Upload, Heart, Palmtree, AlertTriangle, Baby, Flower2, Ban, CalendarDays } from 'lucide-react';
 import { format, startOfToday, isBefore, isAfter } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,12 +32,11 @@ const getLeaveTypeVisuals = (name: string) => {
 };
 
 export default function Leaves() {
-  const { role, user } = useAuth();
-  const { data: leaves, isLoading } = useLeaveRequests();
+  const { user } = useAuth();
+  const { data: myLeaves, isLoading } = useMyLeaveRequests();
   const { data: credits } = useLeaveCredits();
   const { data: leaveTypes } = useLeaveTypes();
   const createLeave = useCreateLeaveRequest();
-  const approveLeave = useApproveLeaveRequest();
 
   const activeLeaveTypes = (leaveTypes || []).filter(lt => lt.is_active).map(lt => {
     const visuals = getLeaveTypeVisuals(lt.name);
@@ -54,8 +52,6 @@ export default function Leaves() {
   const [form, setForm] = useState({ leave_type: '', reason: '', pay_type: 'with_pay' as 'with_pay' | 'without_pay' });
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
-  const [reviewLeave, setReviewLeave] = useState<any>(null);
-  const [remarks, setRemarks] = useState('');
   const [medicalFile, setMedicalFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -100,48 +96,24 @@ export default function Leaves() {
     } catch { toast.error('Failed to submit leave request'); } finally { setUploading(false); }
   };
 
-  const handleApprove = (action: 'approve' | 'reject') => {
-    if (!reviewLeave) return;
-    approveLeave.mutate({ id: reviewLeave.id, action, remarks: remarks || undefined }, { onSuccess: () => { setReviewLeave(null); setRemarks(''); } });
-  };
-
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = { pending: 'bg-warning/20 text-warning', manager_approved: 'bg-info/20 text-info', hr_approved: 'bg-success/20 text-success', rejected: 'bg-destructive/20 text-destructive', cancelled: 'bg-muted text-muted-foreground' };
     return <span className={`px-2 py-1 rounded text-xs font-medium ${styles[status] || styles.pending}`}>{status.replace('_', ' ')}</span>;
   };
 
-  const canReview = (leave: any) => {
-    if (role === 'branch_manager' && leave.status === 'pending') return true;
-    if (role === 'hr_admin' && (leave.status === 'pending' || leave.status === 'manager_approved')) return true;
-    return false;
-  };
-
   const columns: ColumnDef<any, any>[] = [
-    { id: 'employee', header: 'Employee', accessorFn: (row) => `${row.employees?.first_name} ${row.employees?.last_name}` },
     { accessorKey: 'leave_type', header: 'Type', cell: ({ getValue }) => <span className="capitalize">{getValue() as string}</span> },
     { accessorKey: 'pay_type', header: 'Pay Type', cell: ({ getValue }) => <span className="capitalize">{((getValue() as string) || 'with_pay').replace('_', ' ')}</span> },
     { accessorKey: 'start_date', header: 'Start', cell: ({ getValue }) => format(new Date(getValue() as string), 'MMM d, yyyy') },
     { accessorKey: 'end_date', header: 'End', cell: ({ getValue }) => format(new Date(getValue() as string), 'MMM d, yyyy') },
     { accessorKey: 'total_days', header: 'Days' },
     { accessorKey: 'status', header: 'Status', cell: ({ getValue }) => getStatusBadge(getValue() as string) },
-    {
-      id: 'actions', header: 'Actions', enableSorting: false,
-      cell: ({ row }) => {
-        const l = row.original;
-        if (!canReview(l)) return null;
-        return (
-          <Dialog open={reviewLeave?.id === l.id} onOpenChange={(open) => !open && setReviewLeave(null)}>
-            <Button size="sm" variant="outline" onClick={() => setReviewLeave(l)}>Review</Button>
-          </Dialog>
-        );
-      },
-    },
   ];
 
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">Leave Management</h1>
+        <h1 className="page-title">My Leaves</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" /> Request Leave</Button></DialogTrigger>
           <DialogContent className="max-w-md">
@@ -192,40 +164,15 @@ export default function Leaves() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Leave Requests</CardTitle><CardDescription>View and manage leave requests</CardDescription></CardHeader>
+        <CardHeader><CardTitle>My Leave Requests</CardTitle><CardDescription>View the status of your leave applications</CardDescription></CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
           ) : (
-            <DataTable columns={columns} data={leaves || []} searchPlaceholder="Search leave requests..." emptyMessage="No leave requests found" />
+            <DataTable columns={columns} data={myLeaves || []} searchPlaceholder="Search my leaves..." emptyMessage="No leave requests found" />
           )}
         </CardContent>
       </Card>
-
-      {/* Review Dialog */}
-      {reviewLeave && (
-        <Dialog open={!!reviewLeave} onOpenChange={(open) => !open && setReviewLeave(null)}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Review Leave Request</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Employee:</span> <span className="font-medium">{reviewLeave.employees?.first_name} {reviewLeave.employees?.last_name}</span></div>
-                <div><span className="text-muted-foreground">Type:</span> <span className="font-medium capitalize">{reviewLeave.leave_type}</span></div>
-                <div><span className="text-muted-foreground">From:</span> <span className="font-medium">{reviewLeave.start_date}</span></div>
-                <div><span className="text-muted-foreground">To:</span> <span className="font-medium">{reviewLeave.end_date}</span></div>
-                <div><span className="text-muted-foreground">Days:</span> <span className="font-medium">{reviewLeave.total_days}</span></div>
-                <div><span className="text-muted-foreground">Pay Type:</span> <span className="font-medium capitalize">{(reviewLeave.pay_type || 'with_pay').replace('_', ' ')}</span></div>
-              </div>
-              {reviewLeave.reason && <div className="text-sm"><span className="text-muted-foreground">Reason:</span> {reviewLeave.reason}</div>}
-              <div><Label>Remarks</Label><Textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Add remarks..." /></div>
-              <div className="flex gap-2">
-                <Button onClick={() => handleApprove('approve')} disabled={approveLeave.isPending} className="flex-1"><CheckCircle className="mr-2 h-4 w-4" /> Approve</Button>
-                <Button onClick={() => handleApprove('reject')} disabled={approveLeave.isPending} variant="destructive" className="flex-1"><XCircle className="mr-2 h-4 w-4" /> Reject</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }
