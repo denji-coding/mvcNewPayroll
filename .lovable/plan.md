@@ -1,80 +1,83 @@
 
+# Plan: Payroll Leave Computation, Employee Form Fixes, and Sidebar Rename
 
-# Plan: Leave Credits, Sidebar Fix, Payroll Loading, and Data Table
-
-## 1. Auto-assign leave credits to all employees (including on new employee creation)
-
-**What changes:**
-- Create a database trigger that automatically inserts leave credits for a new employee whenever they are added to the `employees` table. The trigger will read all active leave types and create corresponding `leave_credits` records.
-- Update the `create-employee` edge function to also assign leave credits after creating the employee record (as a fallback).
-- This ensures HR admins, branch managers, and regular employees all get leave credits automatically.
-
-**Technical details:**
-- New database migration: create a function `assign_leave_credits_to_employee()` that queries `leave_types` where `is_active = true` and inserts into `leave_credits` for the given employee. A trigger `on_employee_created` fires after INSERT on `employees`.
-- Also update `useCreateLeaveType` hook: when "Apply to all employees" is checked, ensure ALL employees get credits (not just active ones with a specific status filter issue).
-
-## 2. Fix sidebar layout (remove scroll, adjust spacing)
+## 1. Salary Calculator -- Add Leave Fields (LWP / LWOP)
 
 **What changes:**
-- Remove the scroll behavior inside the sidebar and adjust the spacing/padding so all menu items fit without needing to scroll.
-- Reduce padding on sidebar header, groups, and menu items to make everything more compact.
+- Add two new input fields to the Salary Calculator: "Leave With Pay (days)" and "Leave Without Pay (days)"
+- Update `SalaryCalculationInput` and `calculateSalary` in `src/lib/salaryCalculations.ts` to include `leaveWithPayDays` and `leaveWithoutPayDays`
+- Leave With Pay adds earnings: `dailyRate x leaveWithPayDays`
+- Leave Without Pay is informational (shown as 0 deduction line item, since those days simply aren't in "days worked")
+- Show the leave pay line items in the Computation Breakdown section
 
-**Technical details:**
-- In `src/components/layout/AppSidebar.tsx`: reduce padding on the header (from `p-4` to `p-3`), reduce gap between groups, and use smaller text/spacing for labels.
-- In `src/components/ui/sidebar.tsx`: keep `overflow-auto` as a safety fallback but ensure content fits by reducing default spacing in `SidebarGroup` and `SidebarMenuItem` components (reduce `gap-2` to `gap-1`, reduce padding).
+**Files to edit:**
+- `src/lib/salaryCalculations.ts` -- add `leaveWithPayDays` and `leaveWithoutPayDays` to the interface and calculation
+- `src/components/payroll/SalaryCalculator.tsx` -- add input fields and display leave earnings/deductions in breakdown
 
-## 3. Add loading indicators for payroll processing
+**Note:** The `compute-payroll` edge function already handles leave computation correctly (it queries `leave_requests` and calculates LWP/LWOP). No changes needed there.
 
-**What changes:**
-- Show a loading spinner and disabled state on Run Payroll and Approve Payroll buttons while processing.
-- Add a full overlay or inline loading indicator on the payroll records table during computation.
-
-**Technical details:**
-- In `src/pages/Payroll.tsx`: use `runPayroll.isPending` and `approvePayroll.isPending` to show spinner text like "Processing..." and "Approving..." on the respective buttons, and disable them.
-- Add a loading overlay card when either operation is pending.
-
-## 4. Install TanStack React Table and create a reusable DataTable component
+## 2. Number Input Fields -- Allow Direct Keyboard Editing
 
 **What changes:**
-- Install `@tanstack/react-table` package.
-- Create a reusable `DataTable` component with built-in sorting, filtering (global search), and pagination.
-- Replace the current manual table implementations on 9 pages: Employees, Positions, Branches, Time Schedules, Attendance, Leaves, Leave Credits, Payroll, and My Payslips.
+- Remove the default browser spinner arrows on number inputs by adding CSS to hide them
+- Add `[appearance:textfield]` class to number inputs in the Salary Calculator so users can type values directly without relying on up/down buttons
+- This is a CSS-only fix applied globally via `src/index.css`
 
-**Technical details:**
+**Files to edit:**
+- `src/index.css` -- add CSS to hide number input spinners globally
 
-### New files:
-| File | Purpose |
+## 3. Employee Form -- Field Length Limits, Placeholders, and Field Removal
+
+**What changes:**
+- **Phone/Contact**: `maxLength={11}`, placeholder `"09XXXXXXXXX"`
+- **SSS Number**: `maxLength={12}`, placeholder `"XX-XXXXXXX-X"` (10 digits + 2 dashes, standard format)
+- **PhilHealth Number**: `maxLength={14}`, placeholder `"XX-XXXXXXXXX-X"` (12 digits + 2 dashes)
+- **Pag-IBIG Number**: `maxLength={14}`, placeholder `"XXXX-XXXX-XXXX"` (12 digits + 2 dashes)
+- **Remove** TIN Number, Bank Name, Bank Account Number fields from the form
+- **Remove** those three fields from the form state (keep DB columns as-is for backward compatibility)
+- **Add placeholders** to all remaining input fields (First Name, Last Name, Email, Address, etc.)
+- **Emergency Contact Phone**: `maxLength={11}`, placeholder `"09XXXXXXXXX"`
+
+**Password clarification (to be noted in UI):**
+The password is NOT stored in the `employees` table. When creating an employee, the edge function (`create-employee`) creates a user account in the authentication system using that password. The password is managed by the authentication system, not in any visible database table. This is by design for security. The existing UI note "Employee will login using their email and this password" is sufficient.
+
+**Files to edit:**
+- `src/pages/EmployeeForm.tsx` -- add placeholders, maxLength, remove TIN/Bank fields
+
+## 4. Sample Employee with Attendance Records
+
+**What changes:**
+- Insert a sample employee record and attendance records directly into the database using the data insertion tool
+- The sample employee will have varied attendance statuses (present, late, absent, leave) from approximately 10 days ago through today
+- This is a data-only operation, no code changes needed
+
+**Data to insert:**
+- 1 employee record with realistic Philippine data
+- ~10 attendance records with mixed statuses (present, late, absent)
+
+## 5. Sidebar -- Rename "Leaves" to "My Leaves"
+
+**What changes:**
+- In `src/components/layout/AppSidebar.tsx`, change the Employee Portal item title from `"Leaves"` to `"My Leaves"`
+- The `Leaves.tsx` page already has `<h1>My Leaves</h1>` so no change needed there
+
+**Files to edit:**
+- `src/components/layout/AppSidebar.tsx` -- change title in `employeePortalItems`
+
+## Summary of Files to Edit
+
+| File | Changes |
 |------|---------|
-| `src/components/ui/data-table.tsx` | Reusable DataTable component with TanStack React Table |
+| `src/lib/salaryCalculations.ts` | Add leave fields to interface and calculation |
+| `src/components/payroll/SalaryCalculator.tsx` | Add leave input fields and breakdown display |
+| `src/index.css` | Hide number input spinners globally |
+| `src/pages/EmployeeForm.tsx` | Add placeholders, maxLength, remove TIN/Bank fields |
+| `src/components/layout/AppSidebar.tsx` | Rename "Leaves" to "My Leaves" |
 
-### DataTable component features:
-- Accepts `columns` (ColumnDef array) and `data` props
-- Built-in sorting (clickable column headers with sort indicators)
-- Built-in global filter/search input
-- Built-in pagination (configurable page size, page controls)
-- Uses existing ShadCN `Table` components for rendering
-- Optional `searchPlaceholder` and `searchColumn` props
-
-### Pages to update:
-Each page will define its columns using `ColumnDef` and pass data to the `DataTable` component, replacing the manual `Table` + `TablePagination` pattern.
-
-| Page | Key changes |
-|------|-------------|
-| `src/pages/Employees.tsx` | Define columns for Employee ID, Name, Position, Branch, Status, Actions |
-| `src/pages/Positions.tsx` | Define columns for Name, Description, Status, Actions |
-| `src/pages/Branches.tsx` | Define columns for Code, Name, Manager, Employees, Contact, Status, Actions |
-| `src/pages/TimeSchedule.tsx` | Define columns for assigned schedules table |
-| `src/pages/Attendance.tsx` | Define columns for attendance records |
-| `src/pages/Leaves.tsx` | Define columns for leave requests table |
-| `src/pages/LeaveCredits.tsx` | Define columns for leave types management table |
-| `src/pages/Payroll.tsx` | Define columns for payroll periods and records tables |
-| `src/pages/MyPayslips.tsx` | Define columns for payroll history table |
-
-### Implementation order:
-1. Database migration (auto-assign leave credits trigger)
-2. Install `@tanstack/react-table` dependency
-3. Create `DataTable` component
-4. Fix sidebar spacing
-5. Add payroll loading indicators
-6. Update all 9 pages to use DataTable
-
+## Implementation Order
+1. Update salary calculations library (add leave fields)
+2. Update Salary Calculator UI (add leave inputs + breakdown)
+3. Add CSS for number input spinners
+4. Update Employee Form (placeholders, limits, remove fields)
+5. Rename sidebar item
+6. Insert sample employee + attendance data
