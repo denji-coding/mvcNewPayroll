@@ -63,6 +63,16 @@ export default function Employees() {
     fetchEmployees();
   };
 
+  const handlePermanentDelete = async (id: string, name: string) => {
+    const { error } = await supabase
+      .from('employees')
+      .delete()
+      .eq('id', id);
+    if (error) { toast.error('Failed to delete employee permanently'); return; }
+    toast.success(`${name} has been permanently deleted`);
+    fetchEmployees();
+  };
+
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
       active: 'bg-success/20 text-success',
@@ -118,15 +128,34 @@ export default function Employees() {
               </Button>
             )}
             {role === 'hr_admin' && viewMode === 'deleted' && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-success hover:text-success"><RotateCcw className="h-4 w-4" /></Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader><AlertDialogTitle>Restore Employee?</AlertDialogTitle><AlertDialogDescription>This will restore {emp.first_name} {emp.last_name} to active status.</AlertDialogDescription></AlertDialogHeader>
-                  <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleRestore(emp.id, `${emp.first_name} ${emp.last_name}`)}>Restore</AlertDialogAction></AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" title="Restore" className="text-success hover:text-success"><RotateCcw className="h-4 w-4" /></Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader><AlertDialogTitle>Restore Employee?</AlertDialogTitle><AlertDialogDescription>This will restore {emp.first_name} {emp.last_name} to active status.</AlertDialogDescription></AlertDialogHeader>
+                    <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleRestore(emp.id, `${emp.first_name} ${emp.last_name}`)}>Restore</AlertDialogAction></AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" title="Delete permanently" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Permanently?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete {emp.first_name} {emp.last_name} from the database. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handlePermanentDelete(emp.id, `${emp.first_name} ${emp.last_name}`)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete permanently</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
             {role === 'hr_admin' && viewMode !== 'deleted' && (
               <AlertDialog>
