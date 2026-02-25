@@ -63,12 +63,14 @@ export default function Employees() {
     fetchEmployees();
   };
 
-  const handlePermanentDelete = async (id: string, name: string) => {
-    const { error } = await supabase
-      .from('employees')
-      .delete()
-      .eq('id', id);
-    if (error) { toast.error('Failed to delete employee permanently'); return; }
+  const handlePermanentDelete = async (id: string, name: string, userId: string | null) => {
+    const { data, error } = await supabase.functions.invoke('delete-employee-permanently', {
+      body: { employeeId: id, userId },
+    });
+    if (error || data?.error) {
+      toast.error(typeof data?.error === 'string' ? data.error : error?.message ?? 'Failed to delete employee permanently');
+      return;
+    }
     toast.success(`${name} has been permanently deleted`);
     fetchEmployees();
   };
@@ -151,7 +153,7 @@ export default function Employees() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handlePermanentDelete(emp.id, `${emp.first_name} ${emp.last_name}`)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete permanently</AlertDialogAction>
+                      <AlertDialogAction onClick={() => handlePermanentDelete(emp.id, `${emp.first_name} ${emp.last_name}`, emp.user_id ?? null)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete permanently</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>

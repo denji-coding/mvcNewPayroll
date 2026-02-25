@@ -174,3 +174,30 @@ export function useRemoveBranchManager() {
     },
   });
 }
+
+/** Deletes a user's role and branch manager assignments. Use when permanently deleting an employee. */
+export function useDeleteUserRoleAndRelated() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+
+      if (roleError) throw roleError;
+
+      const { error: bmError } = await supabase
+        .from('branch_managers')
+        .delete()
+        .eq('user_id', userId);
+
+      if (bmError) throw bmError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      queryClient.invalidateQueries({ queryKey: ['branch-managers'] });
+    },
+  });
+}

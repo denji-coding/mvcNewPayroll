@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useLeaveTypes, useCreateLeaveType, useUpdateLeaveType, useDeleteLeaveType } from '@/hooks/useLeaveTypes';
+import { useLeaveTypes, useCreateLeaveType, useUpdateLeaveType, useDeleteLeaveType, getLeaveTypeEnum } from '@/hooks/useLeaveTypes';
 import { useAllLeaveCredits } from '@/hooks/useLeaves';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,9 +55,7 @@ export default function LeaveCredits() {
 
   const getTotalTaken = (leaveTypeName: string) => {
     if (!allCredits) return 0;
-    const typeMap: Record<string, string> = { 'Sick Leave': 'sick', 'Vacation Leave': 'vacation', 'Emergency Leave': 'emergency', 'Maternity/Paternity Leave': 'maternity' };
-    const enumVal = typeMap[leaveTypeName];
-    if (!enumVal) return 0;
+    const enumVal = getLeaveTypeEnum(leaveTypeName);
     return allCredits.filter((c: any) => c.leave_type === enumVal).reduce((sum: number, c: any) => sum + (c.used_credits || 0), 0);
   };
 

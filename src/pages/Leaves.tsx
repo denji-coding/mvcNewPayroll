@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMyLeaveRequests, useCreateLeaveRequest, useLeaveCredits, calculateWorkingDays } from '@/hooks/useLeaves';
-import { useLeaveTypes } from '@/hooks/useLeaveTypes';
+import { useLeaveTypes, getLeaveTypeEnum } from '@/hooks/useLeaveTypes';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -40,12 +40,8 @@ export default function Leaves() {
 
   const activeLeaveTypes = (leaveTypes || []).filter(lt => lt.is_active).map(lt => {
     const visuals = getLeaveTypeVisuals(lt.name);
-    const nameToEnum: Record<string, string> = {
-      'Sick Leave': 'sick', 'Vacation Leave': 'vacation', 'Emergency Leave': 'emergency',
-      'Maternity/Paternity Leave': 'maternity', 'Bereavement Leave': 'bereavement', 'Unpaid Leave': 'unpaid',
-    };
-    const enumVal = nameToEnum[lt.name] || lt.name.toLowerCase().replace(/\s+/g, '_');
-    return { value: enumVal, label: lt.name, icon: visuals.icon, defaultCredits: lt.default_credits, color: visuals.color };
+    const enumVal = getLeaveTypeEnum(lt.name);
+    return { id: lt.id, value: enumVal, label: lt.name, icon: visuals.icon, defaultCredits: lt.default_credits, color: visuals.color };
   });
 
   const [open, setOpen] = useState(false);
@@ -119,7 +115,7 @@ export default function Leaves() {
           <DialogContent className="max-w-md">
             <DialogHeader><DialogTitle>New Leave Request</DialogTitle></DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div><Label>Leave Type</Label><Select value={form.leave_type} onValueChange={(v) => setForm({ ...form, leave_type: v })}><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger><SelectContent>{activeLeaveTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent></Select></div>
+              <div><Label>Leave Type</Label><Select value={form.leave_type} onValueChange={(v) => setForm({ ...form, leave_type: v })}><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger><SelectContent>{activeLeaveTypes.map(t => <SelectItem key={t.id} value={t.value}>{t.label}</SelectItem>)}</SelectContent></Select></div>
               <div className="space-y-2"><Label>Pay Type</Label><RadioGroup value={form.pay_type} onValueChange={(v) => setForm({ ...form, pay_type: v as 'with_pay' | 'without_pay' })} className="flex gap-4"><div className="flex items-center space-x-2"><RadioGroupItem value="with_pay" id="with_pay" /><Label htmlFor="with_pay" className="cursor-pointer">With Pay</Label></div><div className="flex items-center space-x-2"><RadioGroupItem value="without_pay" id="without_pay" /><Label htmlFor="without_pay" className="cursor-pointer">Without Pay</Label></div></RadioGroup></div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>Start Date</Label><DatePicker date={startDate} onDateChange={setStartDate} placeholder="Pick date" disabled={!form.leave_type} disabledDates={getDateDisabledFn()} /></div>
@@ -150,7 +146,7 @@ export default function Leaves() {
                 const total = credit?.total_credits || 0; const used = credit?.used_credits || 0; const available = total - used;
                 const Icon = leaveType.icon; const isLow = total > 0 && available <= 0;
                 return (
-                  <div key={leaveType.value} className={cn("flex items-center gap-4 p-4 rounded-lg border", isLow ? "border-destructive/50 bg-destructive/5" : "border-border bg-muted/30")}>
+                  <div key={leaveType.id} className={cn("flex items-center gap-4 p-4 rounded-lg border", isLow ? "border-destructive/50 bg-destructive/5" : "border-border bg-muted/30")}>
                     <div className={cn("p-2 rounded-full bg-background", leaveType.color)}><Icon className="h-5 w-5" /></div>
                     <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{leaveType.label}</p><div className="flex items-baseline gap-1"><span className={cn("text-2xl font-bold", isLow && "text-destructive")}>{available}</span><span className="text-sm text-muted-foreground">/ {total}</span></div>{used > 0 && <p className="text-xs text-muted-foreground">{used} used</p>}</div>
                   </div>
