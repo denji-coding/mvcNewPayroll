@@ -150,10 +150,10 @@ export default function EmployeeForm() {
                   <div className="flex gap-2">
                     <Input 
                       value={form.employee_id} 
-                      onChange={(e) => updateField('employee_id', e.target.value)} 
+                      readOnly 
                       required 
-                      className="flex-1" 
-                      disabled={!!id}
+                      className="flex-1 bg-muted/50 text-muted-foreground cursor-default"
+                      placeholder={!id ? "Click Generate to create ID" : undefined}
                     />
                     {!id && (
                       <Button type="button" variant="outline" size="icon" onClick={generateEmployeeId} title="Generate ID">
