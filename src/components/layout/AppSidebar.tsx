@@ -139,7 +139,7 @@ export function AppSidebar() {
       <NavLink
           to="/"
           end
-          className="group flex flex-col p-2 items-center justify-center rounded-lg transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          className="group flex flex-col items-center justify-center rounded-lg transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
           <img 
             src={companyLogo} 

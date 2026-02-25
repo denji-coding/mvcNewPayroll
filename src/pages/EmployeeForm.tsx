@@ -117,19 +117,22 @@ export default function EmployeeForm() {
   };
 
   return (
-    <div className="page-container max-w-6xl">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/employees')}><ArrowLeft className="h-4 w-4" /></Button>
-        <h1 className="page-title">{id ? 'Edit Employee' : 'Add New Employee'}</h1>
+    <div className="page-container w-full min-h-full flex flex-col px-4 sm:px-6 py-4 sm:py-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 flex-shrink-0">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/employees')} className="self-start sm:self-center" aria-label="Back to employees">
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="page-title text-xl sm:text-2xl">{id ? 'Edit Employee' : 'Add New Employee'}</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+        <div className="space-y-4 sm:space-y-6 overflow-auto flex-1 pb-4">
         <Card>
-          <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-6">
+          <CardHeader className="px-4 sm:px-6"><CardTitle className="text-base sm:text-lg">Personal Information</CardTitle></CardHeader>
+          <CardContent className="px-4 sm:px-6">
+            <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
               {/* Avatar Upload Section */}
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex justify-center lg:justify-start">
                 <EmployeeAvatarUpload
                   avatarUrl={form.avatar_url}
                   gender={form.gender}
@@ -141,7 +144,7 @@ export default function EmployeeForm() {
               </div>
               
               {/* Personal Info Fields */}
-              <div className="flex-1 grid gap-4 md:grid-cols-3">
+              <div className="flex-1 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 min-w-0">
                 <div>
                   <Label>Employee ID *</Label>
                   <div className="flex gap-2">
@@ -167,15 +170,15 @@ export default function EmployeeForm() {
                 <div><Label>Date of Birth</Label><DateInput value={form.date_of_birth} onChange={(v) => updateField('date_of_birth', v)} /></div>
                 <div><Label>Gender</Label><Select value={form.gender} onValueChange={(v) => updateField('gender', v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select></div>
                 <div><Label>Civil Status</Label><Select value={form.civil_status} onValueChange={(v) => updateField('civil_status', v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="single">Single</SelectItem><SelectItem value="married">Married</SelectItem><SelectItem value="widowed">Widowed</SelectItem></SelectContent></Select></div>
-                <div className="md:col-span-3"><Label>Address</Label><Input value={form.address} onChange={(e) => updateField('address', e.target.value)} placeholder="e.g. 123 Main St, Makati City" /></div>
+                <div className="sm:col-span-2 lg:col-span-3"><Label>Address</Label><Input value={form.address} onChange={(e) => updateField('address', e.target.value)} placeholder="e.g. 123 Main St, Makati City" /></div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Employment Details</CardTitle></CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
+          <CardHeader className="px-4 sm:px-6"><CardTitle className="text-base sm:text-lg">Employment Details</CardTitle></CardHeader>
+          <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-6">
             <div>
               <Label>Position *</Label>
               <Select value={form.position} onValueChange={(v) => updateField('position', v)}>
@@ -193,7 +196,7 @@ export default function EmployeeForm() {
             <div><Label>Basic Salary (₱)</Label><Input type="number" value={form.basic_salary} onChange={(e) => updateField('basic_salary', e.target.value)} placeholder="e.g. 25000" /></div>
             <div><Label>RFID Card Number</Label><Input value={form.rfid_card_number} onChange={(e) => updateField('rfid_card_number', e.target.value)} placeholder="Scan or enter RFID number" /></div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sm:col-span-2 lg:col-span-1">
               <Switch 
                 checked={form.employment_status === 'active'} 
                 onCheckedChange={(checked) => updateField('employment_status', checked ? 'active' : 'inactive')} 
@@ -205,8 +208,8 @@ export default function EmployeeForm() {
 
         {!id && (
           <Card>
-            <CardHeader><CardTitle>User Account & Role</CardTitle></CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-3">
+            <CardHeader className="px-4 sm:px-6"><CardTitle className="text-base sm:text-lg">User Account & Role</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-6">
               <div>
                 <Label>Role *</Label>
                 <Select value={form.role} onValueChange={(v) => updateField('role', v)}>
@@ -226,7 +229,7 @@ export default function EmployeeForm() {
                   placeholder="Min 6 characters"
                 />
               </div>
-              <div className="flex items-end">
+              <div className="flex items-end sm:col-span-2">
                 <p className="text-sm text-muted-foreground">
                   Employee will login using their email and this password
                 </p>
@@ -236,8 +239,8 @@ export default function EmployeeForm() {
         )}
 
         <Card>
-          <CardHeader><CardTitle>Government IDs</CardTitle></CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
+          <CardHeader className="px-4 sm:px-6"><CardTitle className="text-base sm:text-lg">Government IDs</CardTitle></CardHeader>
+          <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-4 sm:px-6">
             <div><Label>SSS Number</Label><Input value={form.sss_number} onChange={(e) => updateField('sss_number', e.target.value.replace(/[^0-9-]/g, '').slice(0, 12))} placeholder="XX-XXXXXXX-X" maxLength={12} /></div>
             <div><Label>PhilHealth Number</Label><Input value={form.philhealth_number} onChange={(e) => updateField('philhealth_number', e.target.value.replace(/[^0-9-]/g, '').slice(0, 14))} placeholder="XX-XXXXXXXXX-X" maxLength={14} /></div>
             <div><Label>Pag-IBIG Number</Label><Input value={form.pagibig_number} onChange={(e) => updateField('pagibig_number', e.target.value.replace(/[^0-9-]/g, '').slice(0, 14))} placeholder="XXXX-XXXX-XXXX" maxLength={14} /></div>
@@ -245,21 +248,23 @@ export default function EmployeeForm() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Emergency Contact</CardTitle></CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
+          <CardHeader className="px-4 sm:px-6"><CardTitle className="text-base sm:text-lg">Emergency Contact</CardTitle></CardHeader>
+          <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 px-4 sm:px-6">
             <div><Label>Emergency Contact Name</Label><Input value={form.emergency_contact_name} onChange={(e) => updateField('emergency_contact_name', e.target.value)} placeholder="e.g. Maria Dela Cruz" /></div>
             <div><Label>Emergency Contact Phone</Label><Input value={form.emergency_contact_phone} onChange={(e) => updateField('emergency_contact_phone', e.target.value.replace(/\D/g, '').slice(0, 11))} placeholder="09XXXXXXXXX" maxLength={11} /></div>
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate('/employees')}>Cancel</Button>
-          <Button type="submit" disabled={loading}><Save className="mr-2 h-4 w-4" />{loading ? 'Saving...' : 'Save Employee'}</Button>
+        </div>
+
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-4 pb-2 sm:pb-0 flex-shrink-0 border-t border-border bg-background/95 sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 sm:border-t-0 sm:bg-transparent">
+          <Button type="button" variant="outline" onClick={() => navigate('/employees')} className="w-full sm:w-auto">Cancel</Button>
+          <Button type="submit" disabled={loading} className="w-full sm:w-auto"><Save className="mr-2 h-4 w-4" />{loading ? 'Saving...' : 'Save Employee'}</Button>
         </div>
       </form>
 
       {id && (
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6 flex-shrink-0">
           <SalaryAdjustmentsCard employeeId={id} />
         </div>
       )}
