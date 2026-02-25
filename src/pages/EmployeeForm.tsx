@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { ArrowLeft, Save } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
 import { SalaryAdjustmentsCard } from '@/components/employees/SalaryAdjustmentsCard';
@@ -19,7 +19,6 @@ import { usePositions } from '@/hooks/usePositions';
 export default function EmployeeForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
   const { data: positions } = usePositions();
@@ -80,13 +79,13 @@ export default function EmployeeForm() {
       
       const { error } = await supabase.from('employees').update(cleanPayload).eq('id', id);
       setLoading(false);
-      if (error) { toast({ variant: 'destructive', title: 'Error', description: error.message }); return; }
-      toast({ title: 'Employee Updated' });
+      if (error) { toast.error(error.message); return; }
+      toast.success('Employee updated successfully');
       navigate('/employees');
     } else {
       // Create new employee with user account via edge function
       if (!form.password || form.password.length < 6) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Password must be at least 6 characters' });
+        toast.error('Password must be at least 6 characters');
         setLoading(false);
         return;
       }
@@ -102,10 +101,10 @@ export default function EmployeeForm() {
 
       setLoading(false);
       if (error || data?.error) {
-        toast({ variant: 'destructive', title: 'Error', description: data?.error || error?.message });
+        toast.error(data?.error || error?.message);
         return;
       }
-      toast({ title: 'Employee Created', description: 'User account created and role assigned' });
+      toast.success('Employee created successfully');
       navigate('/employees');
     }
   };

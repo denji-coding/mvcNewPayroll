@@ -136,18 +136,23 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border p-2">
-        <div className="flex flex-col items-center justify-center">
+      <NavLink
+          to="/"
+          end
+          className="group flex flex-col p-2 items-center justify-center rounded-lg transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        >
           <img 
             src={companyLogo} 
-            alt="Migrant Venture Corporation" 
-            className={`object-contain flex-shrink-0 ${collapsed ? 'h-7 w-7' : 'w-10 h-10'}`}
+            alt="Migrants Venture Corporation" 
+            className={`object-contain flex-shrink-0 aspect-square ${collapsed ? 'h-10 w-10' : 'h-28 w-28'}`}
           />
           {!collapsed && (
-            <span className="font-semibold text-sidebar-foreground text-center text-xs mt-1 leading-tight">
-              Migrant Venture Corporation
+            <span className="font-semibold text-sidebar-foreground text-center text-xs mt-2 leading-tight group-hover:text-sidebar-accent-foreground block">
+              <span className="block text-2xl font-bold ">Migrants Venture</span>
+              <span className="block text-2xl font-bold">Corporation</span>
             </span>
           )}
-        </div>
+        </NavLink>
       </SidebarHeader>
 
       <SidebarContent>
