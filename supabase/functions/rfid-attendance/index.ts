@@ -9,7 +9,6 @@ const corsHeaders = {
 interface AttendanceRequest {
   rfid_card_number?: string;
   employee_id?: string;
-  timestamp?: string;
 }
 
 interface TerminalSettings {
@@ -65,7 +64,7 @@ serve(async (req) => {
       );
     }
 
-    const { rfid_card_number, employee_id, timestamp }: AttendanceRequest = await req.json();
+    const { rfid_card_number, employee_id }: AttendanceRequest = await req.json();
 
     if (employee_id && !rfid_card_number && settings.allow_manual_entry === false) {
       return new Response(
@@ -110,8 +109,12 @@ serve(async (req) => {
       );
     }
 
-    const now = timestamp ? new Date(timestamp) : new Date();
-    const today = now.toISOString().split('T')[0];
+    const now = new Date();
+    // Use Philippine timezone for date calculation to prevent past-date recording
+    const phFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    const today = phFormatter.format(now); // "YYYY-MM-DD" in PHT
     const currentTime = now.toISOString();
 
     // Check for approved leave
