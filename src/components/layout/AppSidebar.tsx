@@ -73,7 +73,7 @@ const employeePortalItems: NavItem[] = [
   { title: 'DTR', url: '/dtr', icon: ClipboardList, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_dtr' },
   { title: 'My Attendance', url: '/my-attendance', icon: IdCard, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_my_attendance' },
   { title: 'My Payslips', url: '/my-payslips', icon: FileText, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_my_payslips' },
-  { title: 'Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_leaves' },
+  { title: 'My Leaves', url: '/leaves', icon: CalendarDays, roles: ['hr_admin', 'branch_manager', 'employee'], permissionKey: 'page_leaves' },
 ];
 
 export function AppSidebar() {
