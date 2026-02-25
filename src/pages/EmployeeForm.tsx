@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -90,10 +91,24 @@ export default function EmployeeForm() {
         return;
       }
 
-      const payload = {
+      // Ensure employee_id is set (required by API and DB)
+      let employeeId = form.employee_id.trim();
+      if (!employeeId) {
+        employeeId = `EMP-${Math.floor(100000 + Math.random() * 900000)}`;
+        setForm((prev) => ({ ...prev, employee_id: employeeId }));
+      }
+
+      // Build payload: empty strings as null for optional fields, required fields as-is
+      const payload: Record<string, unknown> = {
         ...form,
+        employee_id: employeeId,
         basic_salary: parseFloat(form.basic_salary) || 0,
+        employment_status: form.employment_status || 'active',
       };
+      const optionalKeys = ['middle_name', 'phone', 'date_of_birth', 'gender', 'civil_status', 'address', 'department', 'branch_id', 'sss_number', 'philhealth_number', 'pagibig_number', 'emergency_contact_name', 'emergency_contact_phone', 'rfid_card_number', 'avatar_url'];
+      for (const key of optionalKeys) {
+        if (payload[key] === '') payload[key] = null;
+      }
 
       const { data, error } = await supabase.functions.invoke('create-employee', {
         body: payload,
@@ -101,7 +116,17 @@ export default function EmployeeForm() {
 
       setLoading(false);
       if (error || data?.error) {
-        toast.error(data?.error || error?.message);
+        let message: string = 'Failed to create employee';
+        if (data?.error && typeof data.error === 'string') message = data.error;
+        else if (error instanceof FunctionsHttpError && error.context) {
+          try {
+            const body = await error.context.json() as { error?: string };
+            if (body?.error) message = body.error;
+          } catch {
+            message = error.message || message;
+          }
+        } else if (error?.message) message = error.message;
+        toast.error(message);
         return;
       }
       toast.success('Employee created successfully');
