@@ -27,7 +27,7 @@ export default function EmployeeForm() {
     employee_id: '', first_name: '', last_name: '', middle_name: '', email: '', phone: '',
     date_of_birth: '', gender: '', civil_status: '', address: '', position: '', department: '',
     date_hired: '', basic_salary: '', branch_id: '', sss_number: '', philhealth_number: '',
-    pagibig_number: '', tin_number: '', bank_name: '', bank_account_number: '',
+    pagibig_number: '',
     emergency_contact_name: '', emergency_contact_phone: '', rfid_card_number: '',
     role: 'employee' as 'employee' | 'branch_manager' | 'hr_admin',
     password: '',
@@ -160,15 +160,15 @@ export default function EmployeeForm() {
                     )}
                   </div>
                 </div>
-                <div><Label>First Name *</Label><Input value={form.first_name} onChange={(e) => updateField('first_name', e.target.value)} required /></div>
-                <div><Label>Last Name *</Label><Input value={form.last_name} onChange={(e) => updateField('last_name', e.target.value)} required /></div>
-                <div><Label>Middle Name</Label><Input value={form.middle_name} onChange={(e) => updateField('middle_name', e.target.value)} /></div>
-                <div><Label>Email *</Label><Input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} required /></div>
-                <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => updateField('phone', e.target.value)} /></div>
+                <div><Label>First Name *</Label><Input value={form.first_name} onChange={(e) => updateField('first_name', e.target.value)} required placeholder="e.g. Juan" /></div>
+                <div><Label>Last Name *</Label><Input value={form.last_name} onChange={(e) => updateField('last_name', e.target.value)} required placeholder="e.g. Dela Cruz" /></div>
+                <div><Label>Middle Name</Label><Input value={form.middle_name} onChange={(e) => updateField('middle_name', e.target.value)} placeholder="e.g. Santos" /></div>
+                <div><Label>Email *</Label><Input type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} required placeholder="e.g. juan@company.com" /></div>
+                <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => updateField('phone', e.target.value.replace(/\D/g, '').slice(0, 11))} placeholder="09XXXXXXXXX" maxLength={11} /></div>
                 <div><Label>Date of Birth</Label><DateInput value={form.date_of_birth} onChange={(v) => updateField('date_of_birth', v)} /></div>
                 <div><Label>Gender</Label><Select value={form.gender} onValueChange={(v) => updateField('gender', v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem></SelectContent></Select></div>
                 <div><Label>Civil Status</Label><Select value={form.civil_status} onValueChange={(v) => updateField('civil_status', v)}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="single">Single</SelectItem><SelectItem value="married">Married</SelectItem><SelectItem value="widowed">Widowed</SelectItem></SelectContent></Select></div>
-                <div className="md:col-span-3"><Label>Address</Label><Input value={form.address} onChange={(e) => updateField('address', e.target.value)} /></div>
+                <div className="md:col-span-3"><Label>Address</Label><Input value={form.address} onChange={(e) => updateField('address', e.target.value)} placeholder="e.g. 123 Main St, Makati City" /></div>
               </div>
             </div>
           </CardContent>
@@ -191,8 +191,8 @@ export default function EmployeeForm() {
             
             <div><Label>Branch</Label><Select value={form.branch_id} onValueChange={(v) => updateField('branch_id', v)}><SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger><SelectContent>{branches.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Date Hired *</Label><DateInput value={form.date_hired} onChange={(v) => updateField('date_hired', v)} /></div>
-            <div><Label>Basic Salary (₱)</Label><Input type="number" value={form.basic_salary} onChange={(e) => updateField('basic_salary', e.target.value)} /></div>
-            <div><Label>RFID Card Number</Label><Input value={form.rfid_card_number} onChange={(e) => updateField('rfid_card_number', e.target.value)} /></div>
+            <div><Label>Basic Salary (₱)</Label><Input type="number" value={form.basic_salary} onChange={(e) => updateField('basic_salary', e.target.value)} placeholder="e.g. 25000" /></div>
+            <div><Label>RFID Card Number</Label><Input value={form.rfid_card_number} onChange={(e) => updateField('rfid_card_number', e.target.value)} placeholder="Scan or enter RFID number" /></div>
             
             <div className="flex items-center gap-2">
               <Switch 
@@ -237,22 +237,19 @@ export default function EmployeeForm() {
         )}
 
         <Card>
-          <CardHeader><CardTitle>Government IDs & Banking</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Government IDs</CardTitle></CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-3">
-            <div><Label>SSS Number</Label><Input value={form.sss_number} onChange={(e) => updateField('sss_number', e.target.value)} /></div>
-            <div><Label>PhilHealth Number</Label><Input value={form.philhealth_number} onChange={(e) => updateField('philhealth_number', e.target.value)} /></div>
-            <div><Label>Pag-IBIG Number</Label><Input value={form.pagibig_number} onChange={(e) => updateField('pagibig_number', e.target.value)} /></div>
-            <div><Label>TIN Number</Label><Input value={form.tin_number} onChange={(e) => updateField('tin_number', e.target.value)} /></div>
-            <div><Label>Bank Name</Label><Input value={form.bank_name} onChange={(e) => updateField('bank_name', e.target.value)} /></div>
-            <div><Label>Bank Account Number</Label><Input value={form.bank_account_number} onChange={(e) => updateField('bank_account_number', e.target.value)} /></div>
+            <div><Label>SSS Number</Label><Input value={form.sss_number} onChange={(e) => updateField('sss_number', e.target.value.replace(/[^0-9-]/g, '').slice(0, 12))} placeholder="XX-XXXXXXX-X" maxLength={12} /></div>
+            <div><Label>PhilHealth Number</Label><Input value={form.philhealth_number} onChange={(e) => updateField('philhealth_number', e.target.value.replace(/[^0-9-]/g, '').slice(0, 14))} placeholder="XX-XXXXXXXXX-X" maxLength={14} /></div>
+            <div><Label>Pag-IBIG Number</Label><Input value={form.pagibig_number} onChange={(e) => updateField('pagibig_number', e.target.value.replace(/[^0-9-]/g, '').slice(0, 14))} placeholder="XXXX-XXXX-XXXX" maxLength={14} /></div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader><CardTitle>Emergency Contact</CardTitle></CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            <div><Label>Emergency Contact Name</Label><Input value={form.emergency_contact_name} onChange={(e) => updateField('emergency_contact_name', e.target.value)} placeholder="Contact person name" /></div>
-            <div><Label>Emergency Contact Phone</Label><Input value={form.emergency_contact_phone} onChange={(e) => updateField('emergency_contact_phone', e.target.value)} placeholder="Contact phone number" /></div>
+            <div><Label>Emergency Contact Name</Label><Input value={form.emergency_contact_name} onChange={(e) => updateField('emergency_contact_name', e.target.value)} placeholder="e.g. Maria Dela Cruz" /></div>
+            <div><Label>Emergency Contact Phone</Label><Input value={form.emergency_contact_phone} onChange={(e) => updateField('emergency_contact_phone', e.target.value.replace(/\D/g, '').slice(0, 11))} placeholder="09XXXXXXXXX" maxLength={11} /></div>
           </CardContent>
         </Card>
 

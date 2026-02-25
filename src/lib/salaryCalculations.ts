@@ -113,6 +113,8 @@ export interface SalaryCalculationInput {
   loanDeductions: number;
   otherDeductions: number;
   workingDaysPerMonth?: number; // Default 22
+  leaveWithPayDays?: number;
+  leaveWithoutPayDays?: number;
 }
 
 export interface SalaryCalculationResult {
@@ -120,6 +122,8 @@ export interface SalaryCalculationResult {
   hourlyRate: number;
   basicPay: number;
   overtimePay: number;
+  leaveWithPayEarnings: number;
+  leaveWithoutPayDeduction: number;
   grossPay: number;
   sssContribution: number;
   philhealthContribution: number;
@@ -133,6 +137,8 @@ export interface SalaryCalculationResult {
 
 export function calculateSalary(input: SalaryCalculationInput): SalaryCalculationResult {
   const workingDays = input.workingDaysPerMonth || 22;
+  const lwpDays = input.leaveWithPayDays || 0;
+  const lwopDays = input.leaveWithoutPayDays || 0;
   
   // Calculate rates
   const dailyRate = input.basicMonthlySalary / workingDays;
@@ -141,7 +147,11 @@ export function calculateSalary(input: SalaryCalculationInput): SalaryCalculatio
   // Calculate earnings
   const basicPay = dailyRate * input.daysWorked;
   const overtimePay = hourlyRate * 1.25 * input.overtimeHours;
-  const grossPay = basicPay + overtimePay + input.allowances;
+  const leaveWithPayEarnings = dailyRate * lwpDays;
+  // LWOP deduction is informational — those days simply aren't in daysWorked
+  // but we show it as a line item for transparency
+  const leaveWithoutPayDeduction = dailyRate * lwopDays;
+  const grossPay = basicPay + overtimePay + leaveWithPayEarnings + input.allowances;
   
   // Monthly equivalent for contribution calculations (semi-monthly payroll)
   const monthlyGross = grossPay * 2;
@@ -176,6 +186,8 @@ export function calculateSalary(input: SalaryCalculationInput): SalaryCalculatio
     hourlyRate: Math.round(hourlyRate * 100) / 100,
     basicPay: Math.round(basicPay * 100) / 100,
     overtimePay: Math.round(overtimePay * 100) / 100,
+    leaveWithPayEarnings: Math.round(leaveWithPayEarnings * 100) / 100,
+    leaveWithoutPayDeduction: Math.round(leaveWithoutPayDeduction * 100) / 100,
     grossPay: Math.round(grossPay * 100) / 100,
     sssContribution: Math.round(sssContribution * 100) / 100,
     philhealthContribution: Math.round(philhealthContribution * 100) / 100,

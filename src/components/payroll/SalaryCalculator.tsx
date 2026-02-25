@@ -15,6 +15,8 @@ export function SalaryCalculator() {
     loanDeductions: 0,
     otherDeductions: 0,
     workingDaysPerMonth: 22,
+    leaveWithPayDays: 0,
+    leaveWithoutPayDays: 0,
   });
 
   const result = useMemo(() => calculateSalary(inputs), [inputs]);
@@ -91,6 +93,33 @@ export function SalaryCalculator() {
             </div>
           </div>
 
+          <Separator />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="lwpDays">Leave With Pay (days)</Label>
+              <Input
+                id="lwpDays"
+                type="number"
+                value={inputs.leaveWithPayDays}
+                onChange={(e) => updateInput('leaveWithPayDays', e.target.value)}
+                className="mt-1"
+                min={0}
+              />
+            </div>
+            <div>
+              <Label htmlFor="lwopDays">Leave Without Pay (days)</Label>
+              <Input
+                id="lwopDays"
+                type="number"
+                value={inputs.leaveWithoutPayDays}
+                onChange={(e) => updateInput('leaveWithoutPayDays', e.target.value)}
+                className="mt-1"
+                min={0}
+              />
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="allowances">Additional Allowances</Label>
             <Input
@@ -155,6 +184,12 @@ export function SalaryCalculator() {
                 <span>Overtime Pay ({inputs.overtimeHours} hrs × {formatCurrency(result.hourlyRate * 1.25)})</span>
                 <span>{formatCurrency(result.overtimePay)}</span>
               </div>
+              {(inputs.leaveWithPayDays || 0) > 0 && (
+                <div className="flex justify-between">
+                  <span>Leave With Pay ({inputs.leaveWithPayDays} days × {formatCurrency(result.dailyRate)})</span>
+                  <span>{formatCurrency(result.leaveWithPayEarnings)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>Allowances</span>
                 <span>{formatCurrency(inputs.allowances)}</span>
@@ -202,6 +237,18 @@ export function SalaryCalculator() {
               </div>
             </div>
           </div>
+
+          {(inputs.leaveWithoutPayDays || 0) > 0 && (
+            <>
+              <Separator />
+              <div className="bg-warning/10 p-3 rounded-lg text-sm">
+                <p className="font-medium text-warning">Leave Without Pay: {inputs.leaveWithoutPayDays} day(s)</p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  LWOP of {formatCurrency(result.leaveWithoutPayDeduction)} is reflected as unpaid days (not included in days worked).
+                </p>
+              </div>
+            </>
+          )}
 
           <Separator />
 
