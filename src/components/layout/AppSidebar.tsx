@@ -149,7 +149,7 @@ export function AppSidebar() {
           {!collapsed && (
             <span className="font-semibold text-sidebar-foreground text-center text-xs mt-2 leading-tight group-hover:text-sidebar-accent-foreground block">
               <span className="block text-2xl font-bold ">Migrants Venture</span>
-              <span className="block text-2xl font-bold">Corporationmm</span>
+              <span className="block text-2xl font-bold">Corporation</span>
             </span>
           )}
         </NavLink>
