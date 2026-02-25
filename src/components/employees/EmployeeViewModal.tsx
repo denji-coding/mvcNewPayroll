@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { EmployeeAvatar } from '@/components/employees/EmployeeAvatar';
 import { format } from 'date-fns';
-import { User, Briefcase, Building2, CreditCard, Phone, Mail, MapPin, Calendar, Shield, Wallet } from 'lucide-react';
+import { User, Briefcase, Phone, Shield } from 'lucide-react';
 
 interface EmployeeViewModalProps {
   employee: any;
@@ -111,22 +111,12 @@ export function EmployeeViewModal({ employee, open, onClose }: EmployeeViewModal
             </div>
           </div>
 
-          {/* Banking & Emergency Contact */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <SectionHeader icon={Wallet} title="Banking Information" />
-              <div className="bg-muted/30 rounded-lg p-3">
-                <InfoRow label="Bank Name" value={employee.bank_name} />
-                <InfoRow label="Account Number" value={employee.bank_account_number} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <SectionHeader icon={Phone} title="Emergency Contact" />
-              <div className="bg-muted/30 rounded-lg p-3">
-                <InfoRow label="Contact Name" value={employee.emergency_contact_name} />
-                <InfoRow label="Contact Phone" value={employee.emergency_contact_phone} />
-              </div>
+          {/* Emergency Contact */}
+          <div className="space-y-2">
+            <SectionHeader icon={Phone} title="Emergency Contact" />
+            <div className="bg-muted/30 rounded-lg p-3">
+              <InfoRow label="Contact Name" value={employee.emergency_contact_name} />
+              <InfoRow label="Contact Phone" value={employee.emergency_contact_phone} />
             </div>
           </div>
         </div>
